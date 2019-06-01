@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "580610127220",
+    "firebase_url": "https://flutter-photos-screensaver.firebaseio.com",
+    "project_id": "flutter-photos-screensaver",
+    "storage_bucket": "flutter-photos-screensaver.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:580610127220:android:e34c4e7bad5c244a",
+        "android_client_info": {
+          "package_name": "com.stefaney.photos"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "580610127220-mjbgpmuomu49a5pkq1vb2bsjvkro3quv.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.stefaney.photos",
+            "certificate_hash": "9a699b61da4726f954697f7ea56e3b0c326393cd"
+          }
+        },
+        {
+          "client_id": "580610127220-jqe159m817105q5lubhv26uked8pvq04.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCBOsOj9TU9lyvctJrLRhlJlMwUI1tLAYg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "580610127220-jqe159m817105q5lubhv26uked8pvq04.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
