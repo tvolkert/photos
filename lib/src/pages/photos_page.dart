@@ -11,6 +11,10 @@ import '../model/random.dart';
 
 const int _zIndexCount = 4;
 
+double _scale(int zIndex) {
+  return 1.15 * (_zIndexCount - zIndex);
+}
+
 class PhotosPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -32,14 +36,14 @@ class _PhotosCascade extends StatefulWidget {
 }
 
 class _PhotosCascadeState extends State<_PhotosCascade> with TickerProviderStateMixin {
-  List<List<_PhotoCard>> cards;
+  List<List<PhotoCard>> cards;
   StreamSubscription<Photo> subscription;
   Ticker ticker;
 
   @override
   void initState() {
     super.initState();
-    cards = List<List<_PhotoCard>>.generate(_zIndexCount, (int index) => <_PhotoCard>[]);
+    cards = List<List<PhotoCard>>.generate(_zIndexCount, (int index) => <PhotoCard>[]);
     ticker = createTicker(_tick)..start();
     subscription = widget.photos.listen((Photo photo) {
       setState(() {
@@ -48,7 +52,7 @@ class _PhotosCascadeState extends State<_PhotosCascade> with TickerProviderState
         double scale = _scale(zIndex);
         double maxLeft = math.max(mediaSize.width - (photo.size.width / scale), 0);
         double left = random.nextDouble() * maxLeft;
-        cards[zIndex].add(_PhotoCard(
+        cards[zIndex].add(PhotoCard(
           photo: photo,
           zIndex: zIndex,
           left: left,
@@ -76,27 +80,16 @@ class _PhotosCascadeState extends State<_PhotosCascade> with TickerProviderState
   @override
   Widget build(BuildContext context) {
     return Stack(
-      children: cards.expand((List<_PhotoCard> cards) => cards).map<Widget>((_PhotoCard card) {
-        return Positioned(
-          child: Image.memory(
-            card.photo.bytes,
-            scale: card.photo.scale * _scale(card.zIndex),
-          ),
-          left: card.left,
-          top: card.top,
-        );
+      children: cards.expand((List<PhotoCard> cards) => cards).map<Widget>((PhotoCard card) {
+        return FLoatingPhoto(card: card);
       }).toList(),
     );
   }
 
-  double _scale(int zIndex) {
-    return 1.15 * (_zIndexCount - zIndex);
-  }
-
   void _tick(Duration elapsed) {
     setState(() {
-      List<_PhotoCard> localCards = cards.expand((List<_PhotoCard> cards) => cards).toList();
-      for (_PhotoCard card in localCards) {
+      List<PhotoCard> localCards = cards.expand((List<PhotoCard> cards) => cards).toList();
+      for (PhotoCard card in localCards) {
         card.top -= (card.zIndex + 1) / _zIndexCount;
         if (card.top + card.photo.size.height < 0) {
           bool removed = cards[card.zIndex].remove(card);
@@ -107,8 +100,8 @@ class _PhotosCascadeState extends State<_PhotosCascade> with TickerProviderState
   }
 }
 
-class _PhotoCard {
-  _PhotoCard({
+class PhotoCard {
+  PhotoCard({
     @required this.photo,
     @required this.zIndex,
     @required this.left,
@@ -128,12 +121,39 @@ class _PhotoCard {
     if (runtimeType != other.runtimeType) {
       return false;
     }
-    _PhotoCard typedOther = other;
+    PhotoCard typedOther = other;
     return photo == typedOther.photo && left == typedOther.left;
   }
 
   @override
   String toString() => '$zIndex :: $left,$top';
+}
+
+class FLoatingPhoto extends StatefulWidget {
+  FLoatingPhoto({
+    Key key,
+    @required this.card,
+  })  : assert(card != null),
+        super(key: key);
+
+  final PhotoCard card;
+
+  @override
+  _FLoatingPhotoState createState() => _FLoatingPhotoState();
+}
+
+class _FLoatingPhotoState extends State<FLoatingPhoto> {
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      child: Image.memory(
+        widget.card.photo.bytes,
+        scale: widget.card.photo.scale * _scale(widget.card.zIndex),
+      ),
+      left: widget.card.left,
+      top: widget.card.top,
+    );
+  }
 }
 
 class PeriodicSpinner extends StatefulWidget {
@@ -159,7 +179,8 @@ class _PeriodicSpinnerState extends State<PeriodicSpinner> with TickerProviderSt
   void initState() {
     super.initState();
     controller = AnimationController(vsync: this, duration: const Duration(seconds: 3));
-    angleAnimation = controller.drive(Tween<double>(begin: 0, end: 2 * math.pi).chain(CurveTween(curve: Curves.easeInOutCubic)));
+    angleAnimation = controller.drive(
+        Tween<double>(begin: 0, end: 2 * math.pi).chain(CurveTween(curve: Curves.easeInOutCubic)));
     transformAnimation = controller.drive(Tween<double>());
     timer = Timer.periodic(const Duration(seconds: 10), (Timer timer) {
       controller.forward().then((void _) {
