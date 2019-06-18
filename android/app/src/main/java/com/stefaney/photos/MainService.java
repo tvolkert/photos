@@ -6,6 +6,9 @@ import android.view.WindowManager.LayoutParams;
 import io.flutter.embedding.android.FlutterView;
 import io.flutter.embedding.engine.FlutterEngine;
 import io.flutter.embedding.engine.dart.DartExecutor;
+import io.flutter.embedding.engine.plugins.shim.ShimPluginRegistry;
+import io.flutter.plugin.platform.PlatformViewsController;
+import io.flutter.plugins.GeneratedPluginRegistrant;
 import io.flutter.view.FlutterMain;
 
 public class MainService extends DreamService {
@@ -20,6 +23,12 @@ public class MainService extends DreamService {
         super.onCreate();
         FlutterMain.startInitialization(getApplicationContext());
         FlutterMain.ensureInitializationComplete(getApplicationContext(), new String[] {});
+        flutterEngine = new FlutterEngine(this);
+        GeneratedPluginRegistrant.registerWith(
+            new ShimPluginRegistry(
+                flutterEngine, new PlatformViewsController()
+            )
+        );
     }
 
     @Override
@@ -29,7 +38,6 @@ public class MainService extends DreamService {
         setInteractive(false);
         setFullscreen(true);
 
-        flutterEngine = new FlutterEngine(this);
         flutterView = new FlutterView(this);
         flutterView.setLayoutParams(matchParent);
         flutterView.attachToFlutterEngine(flutterEngine);
@@ -39,11 +47,15 @@ public class MainService extends DreamService {
     @Override
     public void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-
         flutterView.detachFromFlutterEngine();
-        flutterEngine.destroy();
         flutterView = null;
+    }
+
+    @Override
+    public void onDestroy() {
+        flutterEngine.destroy();
         flutterEngine = null;
+        super.onDestroy();
     }
 
     @Override
@@ -53,7 +65,7 @@ public class MainService extends DreamService {
         final String appBundlePath = FlutterMain.findAppBundlePath(getBaseContext());
         if (appBundlePath != null) {
             flutterEngine.getDartExecutor().executeDartEntrypoint(new DartExecutor.DartEntrypoint(
-                    getResources().getAssets(), appBundlePath, "main"
+                getResources().getAssets(), appBundlePath, "dream"
             ));
         }
     }
