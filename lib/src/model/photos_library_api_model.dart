@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:math' as math;
 import 'dart:io';
 import 'dart:ui';
 
@@ -37,7 +36,7 @@ class PhotosLibraryApiModel extends Model {
     'https://www.googleapis.com/auth/photoslibrary.readonly',
   ]);
 
-  Future<void> _onSignInComplete() async {
+  Future<void> _onSignInComplete({bool fetchPhotos = true}) async {
     _currentUser = _googleSignIn.currentUser;
     AuthState newAuthState;
     if (_currentUser == null) {
@@ -47,7 +46,7 @@ class PhotosLibraryApiModel extends Model {
       newAuthState = AuthState.authenticated;
       _client = PhotosLibraryApiClient(_currentUser.authHeaders);
     }
-    if (newAuthState == AuthState.authenticated) {
+    if (fetchPhotos && newAuthState == AuthState.authenticated) {
       // TODO(tvolkert): don't delete, but don't blindly append
       await _fetchPhotos(delete: false);
     }
@@ -116,9 +115,9 @@ class PhotosLibraryApiModel extends Model {
     _client = null;
   }
 
-  Future<void> signInSilently() async {
+  Future<void> signInSilently({bool fetchPhotosAfterSignIn = true}) async {
     await _googleSignIn.signInSilently();
-    await _onSignInComplete();
+    await _onSignInComplete(fetchPhotos: fetchPhotosAfterSignIn);
   }
 
   Future<SearchMediaItemsResponse> _request([String nextPageToken]) async {
@@ -159,10 +158,21 @@ class PhotosLibraryApiModel extends Model {
             try {
               mediaItem = await _client.getMediaItem(id);
             } on GetMediaItemException catch (error) {
-              print('Error getting media item ${error.mediaItemId}');
-              print(error.reasonPhrase);
-              print(error.responseBody);
-              continue;
+              if (error.statusCode == HttpStatus.unauthorized) {
+                // Need to renew our OAuth access token.
+                debugPrint('Renewing OAuth access token...');
+                await signInSilently(fetchPhotosAfterSignIn: false);
+                if (authState == AuthState.unauthenticated) {
+                  // Unable to renew OAuth token.
+                  debugPrint('Unable to renew OAuth access token; bailing out');
+                  return;
+                }
+              } else {
+                print('Error getting media item ${error.mediaItemId}');
+                print(error.reasonPhrase);
+                print(error.responseBody);
+                continue;
+              }
             }
             assert(mediaItem != null);
 

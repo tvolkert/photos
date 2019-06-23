@@ -5,12 +5,13 @@ import 'package:photos/src/pages/home_page.dart';
 import 'package:scoped_model/scoped_model.dart';
 
 @pragma('vm:entry-point')
-void main() => run(allowSignIn: true);
+void main() => run(interactive: true);
 
 @pragma('vm:entry-point')
-void dream() => run(allowSignIn: false);
+void dream() => run(interactive: false);
 
-void run({@required bool allowSignIn}) {
+void run({@required bool interactive}) {
+  assert(interactive != null);
   final apiModel = PhotosLibraryApiModel();
   apiModel.signInSilently();
   runApp(
@@ -18,7 +19,7 @@ void run({@required bool allowSignIn}) {
       model: apiModel,
       child: MaterialApp(
         title: 'Photos Screensaver',
-        home: HomePage(allowSignIn: allowSignIn),
+        home: HomePage(interactive: interactive),
       ),
     ),
   );
