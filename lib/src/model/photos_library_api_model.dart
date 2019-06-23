@@ -20,6 +20,7 @@ import '../photos_library_api/search_media_items_request.dart';
 import '../photos_library_api/search_media_items_response.dart';
 
 import 'photo.dart';
+import 'random.dart';
 
 enum AuthState {
   pending,
@@ -138,7 +139,6 @@ class PhotosLibraryApiModel extends Model {
       Directory documentsDirectory = await getApplicationDocumentsDirectory();
       File photosFile = File(path.join(documentsDirectory.path, 'photos'));
       File countFile = File(path.join(documentsDirectory.path, 'count'));
-      math.Random random = math.Random(DateTime.now().millisecondsSinceEpoch);
 
       int i = -1;
       while (++i >= 0) {

@@ -16,7 +16,7 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ScopedModelDescendant<PhotosLibraryApiModel>(
-      builder: (context, child, apiModel) {
+      builder: (BuildContext context, Widget child, PhotosLibraryApiModel apiModel) {
         switch (apiModel.authState) {
           case AuthState.pending:
             // Black screen while we try to log in.

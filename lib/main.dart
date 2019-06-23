@@ -22,5 +22,8 @@ void run({@required bool allowSignIn}) {
       ),
     ),
   );
+
+
+  // Limit the size of the image cache to ~the number of images that can be on-screen at a time.
   imageCache.maximumSize = 50;
 }
