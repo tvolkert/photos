@@ -6,14 +6,8 @@ import 'package:flutter/scheduler.dart';
 import 'package:scoped_model/scoped_model.dart';
 
 import '../model/photo.dart';
+import '../model/photo_cards.dart';
 import '../model/photos_library_api_model.dart';
-import '../model/random.dart';
-
-const int _zIndexCount = 4;
-
-double _scale(int zIndex) {
-  return 1.15 * (_zIndexCount - zIndex);
-}
 
 class PhotosPage extends StatelessWidget {
   @override
@@ -27,47 +21,36 @@ class PhotosPage extends StatelessWidget {
 }
 
 class _PhotosCascade extends StatefulWidget {
-  _PhotosCascade({Key key, @required this.photos}) : super(key: key);
+  _PhotosCascade({
+    Key key,
+    @required this.photos,
+  })  : assert(photos != null),
+        super(key: key);
 
+  /// The stream of photos to show.
   final Stream<Photo> photos;
 
   @override
   _PhotosCascadeState createState() => _PhotosCascadeState();
 }
 
-class _PhotosCascadeState extends State<_PhotosCascade> with TickerProviderStateMixin {
-  List<List<PhotoCard>> cards;
+class _PhotosCascadeState extends State<_PhotosCascade> {
   StreamSubscription<Photo> subscription;
-  Ticker ticker;
 
   @override
   void initState() {
     super.initState();
-    cards = List<List<PhotoCard>>.generate(_zIndexCount, (int index) => <PhotoCard>[]);
-    ticker = createTicker(_tick)..start();
     subscription = widget.photos.listen((Photo photo) {
-      setState(() {
-        Size mediaSize = MediaQuery.of(context).size;
-        int zIndex = random.nextInt(_zIndexCount);
-        double scale = _scale(zIndex);
-        double maxLeft = math.max(mediaSize.width - (photo.size.width / scale), 0);
-        double left = random.nextDouble() * maxLeft;
-        cards[zIndex].add(PhotoCard(
-          photo: photo,
-          zIndex: zIndex,
-          left: left,
-          top: mediaSize.height,
-        ));
-      });
+      PhotoMontage montage = ScopedModel.of<PhotoMontage>(context);
+      montage.addPhoto(photo);
+    }, onError: (dynamic error, StackTrace stackTrace) {
+      debugPrint('$error\n$stackTrace');
     });
   }
 
   @override
   void dispose() {
     subscription.cancel();
-    ticker
-      ..stop()
-      ..dispose();
     super.dispose();
   }
 
@@ -79,54 +62,18 @@ class _PhotosCascadeState extends State<_PhotosCascade> with TickerProviderState
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: cards.expand((List<PhotoCard> cards) => cards).map<Widget>((PhotoCard card) {
-        return FLoatingPhoto(card: card);
-      }).toList(),
-    );
-  }
-
-  void _tick(Duration elapsed) {
-    setState(() {
-      List<PhotoCard> localCards = cards.expand((List<PhotoCard> cards) => cards).toList();
-      for (PhotoCard card in localCards) {
-        card.top -= (card.zIndex + 1) / _zIndexCount;
-        if (card.top + card.photo.size.height < 0) {
-          bool removed = cards[card.zIndex].remove(card);
-          assert(removed);
-        }
-      }
+    debugPrint('building cascade');
+    return ScopedModelDescendant<PhotoMontage>(
+      builder: (BuildContext context, Widget child, PhotoMontage montage) {
+      return Stack(
+        children: montage.cards.map<Widget>((PhotoCard card) {
+          return FLoatingPhoto(
+            card: card,
+          );
+        }).toList(),
+      );
     });
   }
-}
-
-class PhotoCard {
-  PhotoCard({
-    @required this.photo,
-    @required this.zIndex,
-    @required this.left,
-    @required this.top,
-  });
-
-  final Photo photo;
-  final int zIndex;
-  final double left;
-  double top;
-
-  @override
-  int get hashCode => hashValues(photo.hashCode, left);
-
-  @override
-  bool operator ==(dynamic other) {
-    if (runtimeType != other.runtimeType) {
-      return false;
-    }
-    PhotoCard typedOther = other;
-    return photo == typedOther.photo && left == typedOther.left;
-  }
-
-  @override
-  String toString() => '$zIndex :: $left,$top';
 }
 
 class FLoatingPhoto extends StatefulWidget {
@@ -142,17 +89,72 @@ class FLoatingPhoto extends StatefulWidget {
   _FLoatingPhotoState createState() => _FLoatingPhotoState();
 }
 
-class _FLoatingPhotoState extends State<FLoatingPhoto> {
+class _FLoatingPhotoState extends State<FLoatingPhoto> with SingleTickerProviderStateMixin {
+  Ticker ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    ticker = createTicker(_tick)..start();
+  }
+
+  @override
+  void dispose() {
+    ticker
+      ..stop()
+      ..dispose();
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(FLoatingPhoto oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // TODO: do something?
+  }
+
   @override
   Widget build(BuildContext context) {
+    Size screenSize = MediaQuery.of(context).size;
     return Positioned(
-      child: Image.memory(
-        widget.card.photo.bytes,
-        scale: widget.card.photo.scale * _scale(widget.card.zIndex),
+      child: Stack(
+        children: <Widget>[
+          Image.memory(
+            widget.card.photo.bytes,
+            scale: widget.card.photo.scale / widget.card.width,
+          ),
+          DefaultTextStyle(
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Colors.red,
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text('Layer: ${widget.card.column.layer.index + 1}'),
+                Text('Column: ${widget.card.column.index + 1}'),
+                Text('Top: ${widget.card.top}'),
+                Text('Bottom: ${widget.card.bottom}'),
+                Text('ScreenSize: $screenSize'),
+              ],
+            ),
+          ),
+        ],
       ),
-      left: widget.card.left,
-      top: widget.card.top,
+      left: screenSize.width * widget.card.left,
+      top: screenSize.height - widget.card.top,
     );
+  }
+
+  void _tick(Duration elapsed) {
+    setState(() {
+      widget.card.nextFrame();
+      double screenHeight = MediaQuery.of(context).size.height;
+      if (widget.card.bottom > screenHeight) {
+        widget.card.dispose();
+      }
+    });
   }
 }
 

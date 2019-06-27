@@ -9,7 +9,10 @@ class MediaMetadata {
   factory MediaMetadata.fromJson(Map<String, dynamic> json) =>
       _$MediaMetadataFromJson(json);
 
+  /// Original width (in pixels) of the media item.
   final String width;
+
+  /// Original height (in pixels) of the media item.
   final String height;
 
   Map<String, dynamic> toJson() => _$MediaMetadataToJson(this);
