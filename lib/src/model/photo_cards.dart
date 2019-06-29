@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:scoped_model/scoped_model.dart';
 
 import '../photos_library_api/media_item.dart';
@@ -15,7 +16,7 @@ typedef PhotoMontageBuilder = PhotoMontage Function();
 class PhotoMontage extends Model {
   PhotoMontage({
     int layerCount: defaultLayerCount,
-    int topLayerColumnCount = defaultTopLayerColumnCount,
+    Map<int, int> columnsByLayer = defaultColumnsByLayer,
     this.padding = defaultPadding,
   }) {
     _layers = List<PhotoLayer>.generate(
@@ -23,15 +24,20 @@ class PhotoMontage extends Model {
       (int index) => PhotoLayer._(
         montage: this,
         index: index,
-        columnCount: index + topLayerColumnCount,
+        columnCount: columnsByLayer[index],
       ),
       growable: false,
     );
   }
 
   static const int defaultLayerCount = 3;
-  static const int defaultTopLayerColumnCount = 2;
   static const double defaultPadding = 0.02;
+
+  static const Map<int, int> defaultColumnsByLayer = <int, int>{
+    0: 2,
+    1: 3,
+    2: 5,
+  };
 
   final double padding;
   List<PhotoLayer> _layers;
@@ -42,7 +48,7 @@ class PhotoMontage extends Model {
     List<PhotoColumn> candidates = _layers
         .map<List<PhotoColumn>>((PhotoLayer layer) => layer._columns)
         .expand<PhotoColumn>((List<PhotoColumn> columns) => columns)
-        .where((PhotoColumn column) => column._cards.isEmpty || column._cards.last.isClear)
+        .where((PhotoColumn column) => column._cards.isEmpty || column._cards.first.isClear)
         .toList();
     if (candidates.isEmpty) {
       return null;
@@ -148,14 +154,14 @@ class PhotoCard {
 
   double get bottom => _top - photo.size.height;
 
-  bool get isClear => _top > photo.size.height;
+  bool get isClear => bottom > 0;
 
   double get scale => photo.scale / column.width;
 
   void nextFrame() {
     PhotoLayer layer = column.layer;
     int layerCount = layer.montage._layers.length;
-    _top += (layerCount - layer.index) / layerCount;
+    _top += (layerCount - layer.index) / layerCount / timeDilation;
   }
 
   void dispose() {

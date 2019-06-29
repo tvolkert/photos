@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:scoped_model/scoped_model.dart';
 
+import 'src/model/photo_card_producer.dart';
 import 'src/model/photo_cards.dart';
 import 'src/model/photos_library_api_model.dart';
 import 'src/pages/home_page.dart';
@@ -17,13 +18,16 @@ void run({@required bool interactive}) {
   final PhotosLibraryApiModel apiModel = PhotosLibraryApiModel();
   apiModel.signInSilently();
   runApp(
-    ScopedModel<PhotosLibraryApiModel>(
-      model: apiModel,
-      child: MaterialApp(
-        title: 'Photos Screensaver',
-        home: HomePage(
+    MaterialApp(
+      title: 'Photos Screensaver',
+      home: ScopedModel<PhotosLibraryApiModel>(
+        model: apiModel,
+        child: HomePage(
           interactive: interactive,
           montageBuilder: () => PhotoMontage(),
+          producerBuilder: (PhotosLibraryApiModel model, PhotoMontage montage) {
+            return PhotoCardProducer(model, montage);
+          },
         ),
       ),
     ),

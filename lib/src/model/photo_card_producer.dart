@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/scheduler.dart';
+import 'package:flutter/widgets.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 
@@ -12,10 +14,17 @@ import 'photo_cards.dart';
 import 'photos_library_api_model.dart';
 import 'random.dart';
 
-class PhotoCardProducer {
-  PhotoCardProducer(this.model, this.montage);
+typedef PhotoCardProducerBuilder = PhotoCardProducer Function(
+  PhotosLibraryApiModel model,
+  PhotoMontage montage,
+);
 
-  static const Duration interval = Duration(seconds: 2);
+class PhotoCardProducer {
+  PhotoCardProducer(this.model, this.montage) {
+    debugPrint('creating new producer - ${StackTrace.current}');
+  }
+
+  static const Duration interval = Duration(seconds: 1, milliseconds: 750);
 
   final PhotosLibraryApiModel model;
   final PhotoMontage montage;
@@ -39,7 +48,7 @@ class PhotoCardProducer {
   bool get isStarted => _timer != null;
 
   void _scheduleProduce() {
-    _timer = Timer(interval, _addCard);
+    _timer = Timer(interval * timeDilation, _addCard);
   }
 
   Future<void> _addCard() async {

@@ -4,8 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:scoped_model/scoped_model.dart';
 import 'package:photos/src/model/photos_library_api_model.dart';
 
-import 'photos_page.dart';
-
 class UndoableActionDispatcher extends ActionDispatcher implements Listenable {
   /// Constructs a new [UndoableActionDispatcher].
   ///
@@ -340,11 +338,6 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _navigateToPhotos(BuildContext context) {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (BuildContext context) => PhotosPage(),
-      ),
-    );
+    Navigator.pushReplacementNamed(context, '/');
   }
 }

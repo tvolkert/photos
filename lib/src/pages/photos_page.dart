@@ -9,19 +9,45 @@ import '../model/photo_card_producer.dart';
 import '../model/photo_cards.dart';
 import '../model/photos_library_api_model.dart';
 
-class PhotosPage extends StatelessWidget {
+class PhotosHome extends StatefulWidget {
+  PhotosHome({
+    Key key,
+    @required this.montageBuilder,
+    @required this.producerBuilder,
+  })  : assert(montageBuilder != null),
+        assert(producerBuilder != null),
+        super(key: key);
+
+  @override
+  _PhotosHomeState createState() => _PhotosHomeState();
+
+  final PhotoMontageBuilder montageBuilder;
+  final PhotoCardProducerBuilder producerBuilder;
+}
+
+class _PhotosHomeState extends State<PhotosHome> {
+  PhotoMontage montage;
+  PhotoCardProducer producer;
+
+  @override
+  void initState() {
+    super.initState();
+    PhotosLibraryApiModel model = ScopedModel.of<PhotosLibraryApiModel>(context);
+    montage = widget.montageBuilder();
+    producer = widget.producerBuilder(model, montage)..start();
+  }
+
+  @override
+  void dispose() {
+    producer.stop();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return ScopedModelDescendant<PhotosLibraryApiModel>(
-      builder: (context, child, apiModel) {
-        PhotoMontage montage = ScopedModel.of<PhotoMontage>(context);
-        PhotoCardProducer producer = PhotoCardProducer(apiModel, montage);
-        producer.start();
-        return ScopedModel<PhotoMontage>(
-          model: montage,
-          child: _PhotosCascade(),
-        );
-      },
+    return ScopedModel<PhotoMontage>(
+      model: montage,
+      child: _PhotosCascade(),
     );
   }
 }
@@ -85,9 +111,13 @@ class _FLoatingPhotoState extends State<FLoatingPhoto> with SingleTickerProvider
   Widget build(BuildContext context) {
     Size screenSize = MediaQuery.of(context).size;
     return Positioned(
-      child: Image.memory(
-        widget.card.photo.bytes,
-        scale: widget.card.photo.scale,
+      child: SizedBox(
+        width: widget.card.column.width * screenSize.width,
+        height: widget.card.column.width * screenSize.width,
+        child: Image.memory(
+          widget.card.photo.bytes,
+          scale: widget.card.photo.scale,
+        ),
       ),
       left: screenSize.width * widget.card.column.left,
       top: screenSize.height - widget.card.top,
