@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:scoped_model/scoped_model.dart';
 
-import '../model/photo.dart';
+import '../model/photo_card_producer.dart';
 import '../model/photo_cards.dart';
 import '../model/photos_library_api_model.dart';
 
@@ -14,65 +14,34 @@ class PhotosPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ScopedModelDescendant<PhotosLibraryApiModel>(
       builder: (context, child, apiModel) {
-        return _PhotosCascade(photos: apiModel.photos);
+        PhotoMontage montage = ScopedModel.of<PhotoMontage>(context);
+        PhotoCardProducer producer = PhotoCardProducer(apiModel, montage);
+        producer.start();
+        return ScopedModel<PhotoMontage>(
+          model: montage,
+          child: _PhotosCascade(),
+        );
       },
     );
   }
 }
 
-class _PhotosCascade extends StatefulWidget {
-  _PhotosCascade({
-    Key key,
-    @required this.photos,
-  })  : assert(photos != null),
-        super(key: key);
-
-  /// The stream of photos to show.
-  final Stream<Photo> photos;
-
-  @override
-  _PhotosCascadeState createState() => _PhotosCascadeState();
-}
-
-class _PhotosCascadeState extends State<_PhotosCascade> {
-  StreamSubscription<Photo> subscription;
-
-  @override
-  void initState() {
-    super.initState();
-    subscription = widget.photos.listen((Photo photo) {
-      PhotoMontage montage = ScopedModel.of<PhotoMontage>(context);
-      montage.addPhoto(photo);
-    }, onError: (dynamic error, StackTrace stackTrace) {
-      debugPrint('$error\n$stackTrace');
-    });
-  }
-
-  @override
-  void dispose() {
-    subscription.cancel();
-    super.dispose();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // TODO(tvolkert): drop photos that are off-screen.
-  }
+class _PhotosCascade extends StatelessWidget {
+  _PhotosCascade({Key key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('building cascade');
     return ScopedModelDescendant<PhotoMontage>(
       builder: (BuildContext context, Widget child, PhotoMontage montage) {
-      return Stack(
-        children: montage.cards.map<Widget>((PhotoCard card) {
-          return FLoatingPhoto(
-            card: card,
-          );
-        }).toList(),
-      );
-    });
+        return Stack(
+          children: montage.cards.map<Widget>((PhotoCard card) {
+            return FLoatingPhoto(
+              card: card,
+            );
+          }).toList(),
+        );
+      },
+    );
   }
 }
 
@@ -116,33 +85,11 @@ class _FLoatingPhotoState extends State<FLoatingPhoto> with SingleTickerProvider
   Widget build(BuildContext context) {
     Size screenSize = MediaQuery.of(context).size;
     return Positioned(
-      child: Stack(
-        children: <Widget>[
-          Image.memory(
-            widget.card.photo.bytes,
-            scale: widget.card.photo.scale / widget.card.width,
-          ),
-          DefaultTextStyle(
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: Colors.red,
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.end,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text('Layer: ${widget.card.column.layer.index + 1}'),
-                Text('Column: ${widget.card.column.index + 1}'),
-                Text('Top: ${widget.card.top}'),
-                Text('Bottom: ${widget.card.bottom}'),
-                Text('ScreenSize: $screenSize'),
-              ],
-            ),
-          ),
-        ],
+      child: Image.memory(
+        widget.card.photo.bytes,
+        scale: widget.card.photo.scale,
       ),
-      left: screenSize.width * widget.card.left,
+      left: screenSize.width * widget.card.column.left,
       top: screenSize.height - widget.card.top,
     );
   }

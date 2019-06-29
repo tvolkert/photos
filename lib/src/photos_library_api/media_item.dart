@@ -1,7 +1,8 @@
 import 'dart:ui';
 
 import 'package:json_annotation/json_annotation.dart';
-import 'package:photos/src/photos_library_api/media_metadata.dart';
+
+import 'media_metadata.dart';
 
 part 'media_item.g.dart';
 

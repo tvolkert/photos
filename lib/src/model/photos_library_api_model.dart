@@ -1,15 +1,13 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
-import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/painting.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:scoped_model/scoped_model.dart';
 
+import '../photos_library_api/exceptions.dart';
 import '../photos_library_api/filters.dart';
 import '../photos_library_api/media_item.dart';
 import '../photos_library_api/media_type.dart';
@@ -17,9 +15,6 @@ import '../photos_library_api/media_type_filter.dart';
 import '../photos_library_api/photos_library_api_client.dart';
 import '../photos_library_api/search_media_items_request.dart';
 import '../photos_library_api/search_media_items_response.dart';
-
-import 'photo.dart';
-import 'random.dart';
 
 enum AuthState {
   pending,
@@ -133,73 +128,26 @@ class PhotosLibraryApiModel extends Model {
     return await _client.searchMediaItems(request);
   }
 
-  Stream<Photo> get photos async* {
-    Directory documentsDirectory = await getApplicationDocumentsDirectory();
-    File photosFile = File(path.join(documentsDirectory.path, 'photos'));
-    File countFile = File(path.join(documentsDirectory.path, 'count'));
-
-    int i = -1;
-    while (++i >= 0) {
-      int skip;
-      if (countFile.existsSync()) {
-        int count = int.parse(await countFile.readAsString());
-        skip = random.nextInt(count);
-      }
-      if (photosFile.existsSync()) {
-        try {
-          String id = await photosFile
-              .openRead()
-              .transform(utf8.decoder)
-              .transform(const LineSplitter())
-              .skip(skip ?? i)
-              .first;
-          MediaItem mediaItem;
-          try {
-            mediaItem = await _client.getMediaItem(id);
-          } on GetMediaItemException catch (error) {
-            if (error.statusCode == HttpStatus.unauthorized) {
-              // Need to renew our OAuth access token.
-              debugPrint('Renewing OAuth access token...');
-              await signInSilently(fetchPhotosAfterSignIn: false);
-              if (authState == AuthState.unauthenticated) {
-                // Unable to renew OAuth token.
-                debugPrint('Unable to renew OAuth access token; bailing out');
-                return;
-              }
-            } else {
-              print('Error getting media item ${error.mediaItemId}');
-              print(error.reasonPhrase);
-              print(error.responseBody);
-              continue;
-            }
+  Future<MediaItem> getMediaItem(String id) async {
+    MediaItem result;
+    while (result == null) {
+      try {
+        result = await _client.getMediaItem(id);
+      } on GetMediaItemException catch (error) {
+        if (error.statusCode == HttpStatus.unauthorized) {
+          // Need to renew our OAuth access token.
+          debugPrint('Renewing OAuth access token...');
+          await signInSilently(fetchPhotosAfterSignIn: false);
+          if (authState == AuthState.unauthenticated) {
+            // Unable to renew OAuth token.
+            debugPrint('Unable to renew OAuth access token; bailing out');
+            return null;
           }
-          assert(mediaItem != null);
-
-          Size screenSize = window.physicalSize;
-          Size scaledSize = applyBoxFit(BoxFit.scaleDown, mediaItem.size, screenSize).destination;
-          String url = '${mediaItem.baseUrl}=w${scaledSize.width.toInt()}-h${scaledSize.height.toInt()}';
-
-          final HttpClient httpClient = HttpClient();
-          final Uri resolved = Uri.base.resolve(url);
-          final HttpClientRequest request = await httpClient.getUrl(resolved);
-          final HttpClientResponse response = await request.close();
-          if (response.statusCode != HttpStatus.ok) {
-            debugPrint('HTTP request failed, statusCode: ${response.statusCode}, $resolved');
-            // TODO(tvolkert): retry?
-            continue;
-          }
-
-          yield Photo(
-            mediaItem,
-            scaledSize / window.devicePixelRatio,
-            window.devicePixelRatio,
-            await consolidateHttpClientResponseBytes(response),
-          );
-        } on StateError {
-          // Our count seems to have gotten out of sync.
+        } else {
+          rethrow;
         }
       }
-      await Future.delayed(const Duration(seconds: 2));
     }
+    return result;
   }
 }

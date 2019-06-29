@@ -1,6 +1,12 @@
+import 'dart:io';
+import 'dart:ui';
+
 import 'package:flutter/foundation.dart';
+import 'package:flutter/painting.dart';
 import 'package:scoped_model/scoped_model.dart';
 
+import '../photos_library_api/media_item.dart';
+import 'http_status_exception.dart';
 import 'photo.dart';
 import 'random.dart';
 
@@ -32,7 +38,7 @@ class PhotoMontage extends Model {
 
   int get layers => _layers.length;
 
-  PhotoCard addPhoto(Photo photo) {
+  Future<PhotoCard> addPhoto(MediaItem mediaItem) async {
     List<PhotoColumn> candidates = _layers
         .map<List<PhotoColumn>>((PhotoLayer layer) => layer._columns)
         .expand<PhotoColumn>((List<PhotoColumn> columns) => columns)
@@ -41,12 +47,35 @@ class PhotoMontage extends Model {
     if (candidates.isEmpty) {
       return null;
     }
+
     PhotoColumn column = candidates[random.nextInt(candidates.length)];
+    Photo photo = await _loadPhoto(mediaItem, column);
+
     PhotoCard card = PhotoCard._(photo: photo, column: column);
     column._cards.insert(0, card);
-    debugPrint('notifying listeners');
     notifyListeners();
     return card;
+  }
+
+  Future<Photo> _loadPhoto(MediaItem mediaItem, PhotoColumn column) async {
+    Size sizeConstraints = Size.square(column.width * window.physicalSize.width);
+    Size photoSize = applyBoxFit(BoxFit.scaleDown, mediaItem.size, sizeConstraints).destination;
+    String url = '${mediaItem.baseUrl}=w${photoSize.width.toInt()}-h${photoSize.height.toInt()}';
+
+    final HttpClient httpClient = HttpClient();
+    final Uri resolved = Uri.base.resolve(url);
+    final HttpClientRequest request = await httpClient.getUrl(resolved);
+    final HttpClientResponse response = await request.close();
+    if (response.statusCode != HttpStatus.ok) {
+      throw HttpStatusException(response.statusCode);
+    }
+
+    return Photo(
+      mediaItem,
+      photoSize / window.devicePixelRatio,
+      window.devicePixelRatio,
+      await consolidateHttpClientResponseBytes(response),
+    );
   }
 
   Iterable<PhotoCard> get cards => _layers.reversed
@@ -78,19 +107,6 @@ class PhotoLayer {
   List<PhotoColumn> _columns;
 
   int get columns => _columns.length;
-
-//
-//  @override
-//  int get hashCode => hashValues(stack, index);
-//
-//  @override
-//  bool operator ==(dynamic other) {
-//    if (runtimeType != other.runtimeType) {
-//      return false;
-//    }
-//    PhotoLayer typedOther = other;
-//    return stack == typedOther.stack && index == typedOther.index;
-//  }
 }
 
 class PhotoColumn {
@@ -103,17 +119,19 @@ class PhotoColumn {
   final int index;
   final List<PhotoCard> _cards = <PhotoCard>[];
 
-//  @override
-//  int get hashCode => hashValues(layer, index);
-//
-//  @override
-//  bool operator ==(dynamic other) {
-//    if (runtimeType != other.runtimeType) {
-//      return false;
-//    }
-//    PhotoColumn typedOther = other;
-//    return layer == typedOther.layer && index == typedOther.index;
-//  }
+  /// The width of this column, expressed as a percentage of screen width.
+  double get width {
+    double totalPadding = (layer.columns + 1) * layer.montage.padding;
+    double remainingWidth = 1 - totalPadding;
+    return remainingWidth / layer.columns;
+  }
+
+  /// The left offset of this column, expressed as a percentage of screen width.
+  double get left {
+    double left = (index + 1) * layer.montage.padding;
+    left += index * width;
+    return left;
+  }
 }
 
 class PhotoCard {
@@ -132,21 +150,7 @@ class PhotoCard {
 
   bool get isClear => _top > photo.size.height;
 
-  double get scale => photo.scale / width;
-
-  /// The left offset of this card, expressed as a percentage of screen width.
-  double get left {
-    double left = (column.index + 1) * column.layer.montage.padding;
-    left += column.index * width;
-    return left;
-  }
-
-  /// The width of this card, expressed as a percentage of screen width.
-  double get width {
-    double totalPadding = (column.layer.columns + 1) * column.layer.montage.padding;
-    double remainingWidth = 1 - totalPadding;
-    return remainingWidth / column.layer.columns;
-  }
+  double get scale => photo.scale / column.width;
 
   void nextFrame() {
     PhotoLayer layer = column.layer;
@@ -155,22 +159,8 @@ class PhotoCard {
   }
 
   void dispose() {
-    debugPrint('disposing of photo in column ${column.index} of layer ${column.layer.index}');
     bool removed = column._cards.remove(this);
     assert(removed);
-    debugPrint('notifying listeners');
     column.layer.montage._notifyListeners();
   }
-
-//  @override
-//  int get hashCode => hashValues(photo, column);
-//
-//  @override
-//  bool operator ==(dynamic other) {
-//    if (runtimeType != other.runtimeType) {
-//      return false;
-//    }
-//    PhotoCard typedOther = other;
-//    return photo == typedOther.photo && column == typedOther.column;
-//  }
 }
