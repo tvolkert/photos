@@ -16,14 +16,27 @@ import '../photos_library_api/photos_library_api_client.dart';
 import '../photos_library_api/search_media_items_request.dart';
 import '../photos_library_api/search_media_items_response.dart';
 
-enum AuthState {
-  pending,
+enum PhotosLibraryApiState {
+  /// The user has not yet attempted authentication or is in the process of
+  /// authenticating.
+  pendingAuthentication,
+
+  /// The user has authenticated and is in possession of a valid OAuth 2.0
+  /// access token.
   authenticated,
+
+  /// The user has attempted authentication and failed, or their OAuth access
+  /// token has expired and in need of renewal.
   unauthenticated,
+
+  /// The user has successfully authenticated, but they are being rate limited
+  /// by the Google Photos API and are temporarily not allowed to make further
+  /// API requests.
+  rateLimited,
 }
 
 class PhotosLibraryApiModel extends Model {
-  AuthState _authState = AuthState.pending;
+  PhotosLibraryApiState _state = PhotosLibraryApiState.pendingAuthentication;
   PhotosLibraryApiClient _client;
   GoogleSignInAccount _currentUser;
 
@@ -33,22 +46,19 @@ class PhotosLibraryApiModel extends Model {
 
   Future<void> _onSignInComplete({bool fetchPhotos = true}) async {
     _currentUser = _googleSignIn.currentUser;
-    AuthState newAuthState;
+    PhotosLibraryApiState newState;
     if (_currentUser == null) {
-      newAuthState = AuthState.unauthenticated;
+      newState = PhotosLibraryApiState.unauthenticated;
       _client = null;
     } else {
-      newAuthState = AuthState.authenticated;
+      newState = PhotosLibraryApiState.authenticated;
       _client = PhotosLibraryApiClient(_currentUser.authHeaders);
     }
-    if (fetchPhotos && newAuthState == AuthState.authenticated) {
+    if (fetchPhotos && newState == PhotosLibraryApiState.authenticated) {
       // TODO(tvolkert): don't delete, but don't blindly append
       await _populatePhotosFile(delete: false);
     }
-    if (_authState != newAuthState) {
-      _authState = newAuthState;
-      notifyListeners();
-    }
+    state = newState;
   }
 
   Future<void> _populatePhotosFile({bool delete = false}) async {
@@ -89,25 +99,32 @@ class PhotosLibraryApiModel extends Model {
     }
   }
 
-  AuthState get authState => _authState;
+  PhotosLibraryApiState get state => _state;
+  set state(PhotosLibraryApiState value) {
+    assert(value != null);
+    if (_state != value) {
+      _state = value;
+      notifyListeners();
+    }
+  }
 
   Future<bool> signIn() async {
     if (_currentUser != null) {
-      assert(authState == AuthState.authenticated);
+      assert(state == PhotosLibraryApiState.authenticated);
       return true;
     }
 
-    assert(authState != AuthState.authenticated);
+    assert(state != PhotosLibraryApiState.authenticated);
     await _googleSignIn.signIn();
     await _onSignInComplete();
-    return authState == AuthState.authenticated;
+    return state == PhotosLibraryApiState.authenticated;
   }
 
   Future<void> signOut() async {
     await _googleSignIn.disconnect();
     _currentUser = null;
-    _authState = AuthState.unauthenticated;
     _client = null;
+    state = PhotosLibraryApiState.unauthenticated;
   }
 
   Future<void> signInSilently({bool fetchPhotosAfterSignIn = true}) async {
@@ -134,17 +151,21 @@ class PhotosLibraryApiModel extends Model {
       try {
         result = await _client.getMediaItem(id);
       } on GetMediaItemException catch (error) {
-        if (error.statusCode == HttpStatus.unauthorized) {
-          // Need to renew our OAuth access token.
-          debugPrint('Renewing OAuth access token...');
-          await signInSilently(fetchPhotosAfterSignIn: false);
-          if (authState == AuthState.unauthenticated) {
-            // Unable to renew OAuth token.
-            debugPrint('Unable to renew OAuth access token; bailing out');
+        switch (error.statusCode) {
+          case HttpStatus.unauthorized:
+            debugPrint('Renewing OAuth access token...');
+            await signInSilently(fetchPhotosAfterSignIn: false);
+            if (state == PhotosLibraryApiState.unauthenticated) {
+              debugPrint('Unable to renew OAuth access token; bailing out');
+              return null;
+            }
+            break;
+          case HttpStatus.tooManyRequests:
+            state = PhotosLibraryApiState.rateLimited;
             return null;
-          }
-        } else {
-          rethrow;
+            break;
+          default:
+            rethrow;
         }
       }
     }

@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
@@ -7,7 +7,6 @@ import 'package:flutter/scheduler.dart';
 import 'package:scoped_model/scoped_model.dart';
 
 import '../photos_library_api/media_item.dart';
-import 'http_status_exception.dart';
 import 'photo.dart';
 import 'random.dart';
 
@@ -55,7 +54,8 @@ class PhotoMontage extends Model {
     }
 
     PhotoColumn column = candidates[random.nextInt(candidates.length)];
-    Photo photo = await _loadPhoto(mediaItem, column);
+    Size sizeConstraints = Size.square(column.width * window.physicalSize.width);
+    Photo photo = await _loadPhoto(mediaItem, sizeConstraints);
 
     PhotoCard card = PhotoCard._(photo: photo, column: column);
     column._cards.insert(0, card);
@@ -63,24 +63,15 @@ class PhotoMontage extends Model {
     return card;
   }
 
-  Future<Photo> _loadPhoto(MediaItem mediaItem, PhotoColumn column) async {
-    Size sizeConstraints = Size.square(column.width * window.physicalSize.width);
+  Future<Photo> _loadPhoto(MediaItem mediaItem, Size sizeConstraints) async {
     Size photoSize = applyBoxFit(BoxFit.scaleDown, mediaItem.size, sizeConstraints).destination;
-    String url = '${mediaItem.baseUrl}=w${photoSize.width.toInt()}-h${photoSize.height.toInt()}';
-
-    final HttpClient httpClient = HttpClient();
-    final Uri resolved = Uri.base.resolve(url);
-    final HttpClientRequest request = await httpClient.getUrl(resolved);
-    final HttpClientResponse response = await request.close();
-    if (response.statusCode != HttpStatus.ok) {
-      throw HttpStatusException(response.statusCode);
-    }
+    Uint8List bytes = await mediaItem.load(photoSize);
 
     return Photo(
       mediaItem,
       photoSize / window.devicePixelRatio,
       window.devicePixelRatio,
-      await consolidateHttpClientResponseBytes(response),
+      bytes,
     );
   }
 

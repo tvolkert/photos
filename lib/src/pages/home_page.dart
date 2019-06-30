@@ -36,19 +36,27 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ScopedModelDescendant<PhotosLibraryApiModel>(
       builder: (BuildContext context, Widget child, PhotosLibraryApiModel apiModel) {
-        switch (apiModel.authState) {
-          case AuthState.pending:
+        switch (apiModel.state) {
+          case PhotosLibraryApiState.pendingAuthentication:
             // Show a blank screen while we try to non-interactively sign in.
             return Container();
-          case AuthState.unauthenticated:
+          case PhotosLibraryApiState.unauthenticated:
             return interactive ? LoginPage() : InteractiveLoginRequiredPage();
-          case AuthState.authenticated:
+          case PhotosLibraryApiState.authenticated:
             return PhotosHome(
               montageBuilder: montageBuilder,
               producerBuilder: producerBuilder,
             );
+          case PhotosLibraryApiState.rateLimited:
+            return PhotosHome(
+              montageBuilder: montageBuilder,
+              producerBuilder: (PhotosLibraryApiModel model, PhotoMontage montage) {
+                return PhotoCardProducer.asset(montage);
+              },
+            );
+            break;
           default:
-            throw StateError('Auth state not supported: ${apiModel.authState}');
+            throw StateError('Auth state not supported: ${apiModel.state}');
         }
       },
     );

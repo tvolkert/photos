@@ -116,6 +116,7 @@ class _FLoatingPhotoState extends State<FLoatingPhoto> with SingleTickerProvider
         height: widget.card.column.width * screenSize.width,
         child: Image.memory(
           widget.card.photo.bytes,
+          alignment: Alignment.topCenter,
           scale: widget.card.photo.scale,
         ),
       ),

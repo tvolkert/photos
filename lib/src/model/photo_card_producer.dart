@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/scheduler.dart';
-import 'package:flutter/widgets.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 
@@ -19,15 +18,17 @@ typedef PhotoCardProducerBuilder = PhotoCardProducer Function(
   PhotoMontage montage,
 );
 
-class PhotoCardProducer {
-  PhotoCardProducer(this.model, this.montage) {
-    debugPrint('creating new producer - ${StackTrace.current}');
-  }
+abstract class PhotoCardProducer {
+  factory PhotoCardProducer(
+    PhotosLibraryApiModel model,
+    PhotoMontage montage,
+  ) = _ApiPhotoCardProducer;
+
+  factory PhotoCardProducer.asset(PhotoMontage montage) = _StaticPhotoCardProducer;
+
+  PhotoCardProducer._();
 
   static const Duration interval = Duration(seconds: 1, milliseconds: 750);
-
-  final PhotosLibraryApiModel model;
-  final PhotoMontage montage;
 
   Timer _timer;
 
@@ -51,6 +52,16 @@ class PhotoCardProducer {
     _timer = Timer(interval * timeDilation, _addCard);
   }
 
+  Future<void> _addCard();
+}
+
+class _ApiPhotoCardProducer extends PhotoCardProducer {
+  _ApiPhotoCardProducer(this.model, this.montage) : super._();
+
+  final PhotosLibraryApiModel model;
+  final PhotoMontage montage;
+
+  @override
   Future<void> _addCard() async {
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
     File photosFile = File(path.join(documentsDirectory.path, 'photos'));
@@ -85,5 +96,15 @@ class PhotoCardProducer {
     }
 
     _scheduleProduce();
+  }
+}
+
+class _StaticPhotoCardProducer extends PhotoCardProducer {
+  _StaticPhotoCardProducer(this.montage) : super._();
+
+  final PhotoMontage montage;
+
+  @override
+  Future<void> _addCard() async {
   }
 }

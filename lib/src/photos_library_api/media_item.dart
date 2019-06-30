@@ -1,7 +1,11 @@
+import 'dart:io';
+import 'dart:typed_data';
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart';
 import 'package:json_annotation/json_annotation.dart';
 
+import 'http_status_exception.dart';
 import 'media_metadata.dart';
 
 part 'media_item.g.dart';
@@ -65,6 +69,20 @@ class MediaItem {
     int width = int.parse(mediaMetadata.width);
     int height = int.parse(mediaMetadata.height);
     return Size(width.toDouble(), height.toDouble());
+  }
+
+  Future<Uint8List> load(Size size) async {
+    String url = '$baseUrl=w${size.width.toInt()}-h${size.height.toInt()}';
+
+    final HttpClient httpClient = HttpClient();
+    final Uri resolved = Uri.base.resolve(url);
+    final HttpClientRequest request = await httpClient.getUrl(resolved);
+    final HttpClientResponse response = await request.close();
+    if (response.statusCode != HttpStatus.ok) {
+      throw HttpStatusException(response.statusCode);
+    }
+
+    return await consolidateHttpClientResponseBytes(response);
   }
 
   Map<String, dynamic> toJson() => _$MediaItemToJson(this);
