@@ -15,7 +15,7 @@ class PhotosLibraryApiClient {
 
   Future<SearchMediaItemsResponse> searchMediaItems(SearchMediaItemsRequest request) async {
     final http.Response response = await http.post(
-      'https://photoslibrary.googleapis.com/v1/mediaItems:search',
+      Uri.parse('https://photoslibrary.googleapis.com/v1/mediaItems:search'),
       body: jsonEncode(request),
       headers: await _authHeaders,
     );
@@ -29,7 +29,7 @@ class PhotosLibraryApiClient {
 
   Future<MediaItem> getMediaItem(String id) async {
     final http.Response response = await http.get(
-      'https://photoslibrary.googleapis.com/v1/mediaItems/$id',
+      Uri.parse('https://photoslibrary.googleapis.com/v1/mediaItems/$id'),
       headers: await _authHeaders,
     );
 
