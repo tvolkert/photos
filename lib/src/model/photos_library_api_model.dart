@@ -1,12 +1,11 @@
 import 'dart:async';
-import 'dart:io';
+import 'dart:io' show FileMode, HttpStatus;
 
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
 import 'package:scoped_model/scoped_model.dart';
 
+import 'files.dart';
 import '../photos_library_api/exceptions.dart';
 import '../photos_library_api/filters.dart';
 import '../photos_library_api/media_item.dart';
@@ -62,32 +61,29 @@ class PhotosLibraryApiModel extends Model {
   }
 
   Future<void> _populatePhotosFile({bool delete = false}) async {
-    Directory documentsDirectory = await getApplicationDocumentsDirectory();
-    File nextPageTokenFile = File(path.join(documentsDirectory.path, 'nextPageToken'));
-    File photosFile = File(path.join(documentsDirectory.path, 'photos'));
-    File countFile = File(path.join(documentsDirectory.path, 'count'));
+    final FilesBinding files = FilesBinding.instance;
     if (delete) {
-      if (nextPageTokenFile.existsSync()) nextPageTokenFile.deleteSync();
-      if (photosFile.existsSync()) photosFile.deleteSync();
-      if (countFile.existsSync()) countFile.deleteSync();
+      if (files.nextPageTokenFile.existsSync()) files.nextPageTokenFile.deleteSync();
+      if (files.photosFile.existsSync()) files.photosFile.deleteSync();
+      if (files.countFile.existsSync()) files.countFile.deleteSync();
     }
     String nextPageToken;
-    if (nextPageTokenFile.existsSync()) {
-      nextPageToken = await nextPageTokenFile.readAsString();
+    if (files.nextPageTokenFile.existsSync()) {
+      nextPageToken = await files.nextPageTokenFile.readAsString();
     }
     int count = 0;
-    if (countFile.existsSync()) {
-      count = int.parse(await countFile.readAsString());
+    if (files.countFile.existsSync()) {
+      count = int.parse(await files.countFile.readAsString());
     }
     try {
       SearchMediaItemsResponse response = await _searchMediaItems(nextPageToken);
       Iterable<String> ids = response.mediaItems?.map((MediaItem mediaItem) => mediaItem.id);
       if (ids != null) {
-        await photosFile.writeAsString(ids.join('\n'), mode: FileMode.append, flush: true);
-        await countFile.writeAsString('${count + response.mediaItems.length}', flush: true);
+        await files.photosFile.writeAsString(ids.join('\n'), mode: FileMode.append, flush: true);
+        await files.countFile.writeAsString('${count + response.mediaItems.length}', flush: true);
       }
       if (response.nextPageToken != null) {
-        nextPageTokenFile.writeAsString(response.nextPageToken, flush: true);
+        files.nextPageTokenFile.writeAsString(response.nextPageToken, flush: true);
         Timer(const Duration(seconds: 2), () {
           _populatePhotosFile();
         });

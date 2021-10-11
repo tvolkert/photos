@@ -1,5 +1,5 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:photos/src/model/app.dart';
 import 'package:scoped_model/scoped_model.dart';
 
 import 'src/model/photo_card_producer.dart';
@@ -13,8 +13,9 @@ void main() => run(interactive: true);
 @pragma('vm:entry-point')
 void dream() => run(interactive: false);
 
-void run({@required bool interactive}) {
+Future<void> run({@required bool interactive}) async {
   assert(interactive != null);
+  await AppBinding.ensureInitialized();
   final PhotosLibraryApiModel apiModel = PhotosLibraryApiModel();
   apiModel.signInSilently();
   runApp(

@@ -7,7 +7,6 @@ import io.flutter.embedding.android.FlutterView;
 import io.flutter.embedding.engine.FlutterEngine;
 import io.flutter.embedding.engine.dart.DartExecutor;
 import io.flutter.embedding.engine.plugins.shim.ShimPluginRegistry;
-import io.flutter.plugin.platform.PlatformViewsController;
 import io.flutter.plugins.GeneratedPluginRegistrant;
 import io.flutter.view.FlutterMain;
 
@@ -24,11 +23,7 @@ public class MainService extends DreamService {
         FlutterMain.startInitialization(getApplicationContext());
         FlutterMain.ensureInitializationComplete(getApplicationContext(), new String[] {});
         flutterEngine = new FlutterEngine(this);
-        GeneratedPluginRegistrant.registerWith(
-            new ShimPluginRegistry(
-                flutterEngine, new PlatformViewsController()
-            )
-        );
+        GeneratedPluginRegistrant.registerWith(flutterEngine);
     }
 
     @Override
@@ -65,7 +60,7 @@ public class MainService extends DreamService {
         final String appBundlePath = FlutterMain.findAppBundlePath(getBaseContext());
         if (appBundlePath != null) {
             flutterEngine.getDartExecutor().executeDartEntrypoint(new DartExecutor.DartEntrypoint(
-                getResources().getAssets(), appBundlePath, "dream"
+                appBundlePath, "dream"
             ));
         }
     }

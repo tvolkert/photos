@@ -19,7 +19,7 @@
           "client_type": 1,
           "android_info": {
             "package_name": "com.stefaney.photos",
-            "certificate_hash": "9a699b61da4726f954697f7ea56e3b0c326393cd"
+            "certificate_hash": "48fc031cb2e012da1725744ebb5ce0ac1e066a0f"
           }
         },
         {
@@ -38,6 +38,13 @@
             {
               "client_id": "580610127220-jqe159m817105q5lubhv26uked8pvq04.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "580610127220-mp0dcf6lv4u87b6trap32nefms4t1ir0.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.stefaney.photos"
+              }
             }
           ]
         }

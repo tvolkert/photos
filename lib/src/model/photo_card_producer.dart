@@ -1,14 +1,13 @@
 import 'dart:async';
+import 'dart:typed_data';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/scheduler.dart';
-import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
 
 import '../photos_library_api/exceptions.dart';
 import '../photos_library_api/media_item.dart';
 
+import 'files.dart';
 import 'photo_cards.dart';
 import 'photos_library_api_model.dart';
 import 'random.dart';
@@ -63,17 +62,16 @@ class _ApiPhotoCardProducer extends PhotoCardProducer {
 
   @override
   Future<void> _addCard() async {
-    Directory documentsDirectory = await getApplicationDocumentsDirectory();
-    File photosFile = File(path.join(documentsDirectory.path, 'photos'));
-    File countFile = File(path.join(documentsDirectory.path, 'count'));
+    final FilesBinding files = FilesBinding.instance;
 
-    if (countFile.existsSync() && photosFile.existsSync()) {
-      int count = int.parse(await countFile.readAsString());
+    if (files.countFile.existsSync() && files.photosFile.existsSync()) {
+      int count = int.parse(await files.countFile.readAsString());
       int skip = random.nextInt(count);
 
       try {
-        String id = await photosFile
+        String id = await files.photosFile
             .openRead()
+            .cast<List<int>>()
             .transform(utf8.decoder)
             .transform(const LineSplitter())
             .skip(skip)
