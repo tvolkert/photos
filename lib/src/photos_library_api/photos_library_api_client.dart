@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
+import 'batch_get_request.dart';
+import 'batch_get_response.dart';
 import 'exceptions.dart';
 import 'list_media_items_request.dart';
 import 'list_media_items_response.dart';
@@ -56,5 +58,20 @@ class PhotosLibraryApiClient {
     }
 
     return MediaItem.fromJson(jsonDecode(response.body));
+  }
+
+  Future<BatchGetResponse> batchGet(BatchGetRequest request) async {
+    final http.Response response = await http.get(
+      Uri.https('photoslibrary.googleapis.com', '/v1/mediaItems:batchGet', <String, dynamic>{
+        'mediaItemIds': request.mediaItemIds,
+      }),
+      headers: await _authHeaders,
+    );
+
+    if (response.statusCode != 200) {
+      throw PhotosApiException(response);
+    }
+
+    return BatchGetResponse.fromJson(jsonDecode(response.body));
   }
 }
