@@ -1,22 +1,22 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'search_media_items_response.dart';
+part of 'list_media_items_response.dart';
 
 // **************************************************************************
 // JsonSerializableGenerator
 // **************************************************************************
 
-SearchMediaItemsResponse _$SearchMediaItemsResponseFromJson(
+ListMediaItemsResponse _$ListMediaItemsResponseFromJson(
         Map<String, dynamic> json) =>
-    SearchMediaItemsResponse(
+    ListMediaItemsResponse(
       mediaItems: (json['mediaItems'] as List<dynamic>)
           .map((e) => MediaItem.fromJson(e as Map<String, dynamic>))
           .toList(),
       nextPageToken: json['nextPageToken'] as String?,
     );
 
-Map<String, dynamic> _$SearchMediaItemsResponseToJson(
-        SearchMediaItemsResponse instance) =>
+Map<String, dynamic> _$ListMediaItemsResponseToJson(
+        ListMediaItemsResponse instance) =>
     <String, dynamic>{
       'mediaItems': instance.mediaItems,
       'nextPageToken': instance.nextPageToken,

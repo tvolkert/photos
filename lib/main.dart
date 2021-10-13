@@ -13,8 +13,7 @@ void main() => run(interactive: true);
 @pragma('vm:entry-point')
 void dream() => run(interactive: false);
 
-Future<void> run({@required bool interactive}) async {
-  assert(interactive != null);
+Future<void> run({required bool interactive}) async {
   await AppBinding.ensureInitialized();
   final PhotosLibraryApiModel apiModel = PhotosLibraryApiModel();
   apiModel.signInSilently();
@@ -36,5 +35,5 @@ Future<void> run({@required bool interactive}) async {
 
   // Limit the size of the image cache to ~the number of images that can be on-screen at a time.
   // TODO: lower this value
-  imageCache.maximumSize = 100;
+  imageCache!.maximumSize = 100;
 }

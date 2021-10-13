@@ -14,7 +14,7 @@ class PhotosApiException implements Exception {
   final int statusCode;
 
   /// A human-readable description of the HTTP status.
-  final String reasonPhrase;
+  final String? reasonPhrase;
 
   /// The body of the response that the server responded with.
   final String responseBody;

@@ -11,9 +11,9 @@ class LoginIntent extends Intent {
 
 class LoginAction extends Action<LoginIntent> {
   LoginAction({
-    @required this.onDoLogin,
-    @required this.onLoginSuccess,
-    @required this.onLoginFailure,
+    required this.onDoLogin,
+    required this.onLoginSuccess,
+    required this.onLoginFailure,
   });
 
   final LoginCallback onDoLogin;
@@ -41,27 +41,27 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  FocusNode focusNode;
-  GlobalKey<_LoginPageState> globalKey;
+  FocusNode? focusNode;
+  GlobalKey<_LoginPageState>? globalKey;
 
   @override
   void initState() {
     super.initState();
     globalKey = GlobalKey();
     focusNode = FocusNode();
-    WidgetsBinding.instance.focusManager.rootScope.requestFocus(focusNode);
+    WidgetsBinding.instance!.focusManager.rootScope.requestFocus(focusNode);
   }
 
   @override
   void dispose() {
-    focusNode.dispose();
+    focusNode!.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return ScopedModelDescendant<PhotosLibraryApiModel>(
-      builder: (BuildContext context, Widget child, PhotosLibraryApiModel apiModel) {
+      builder: (BuildContext context, Widget? child, PhotosLibraryApiModel apiModel) {
         return Shortcuts(
           shortcuts: <LogicalKeySet, Intent>{
             // LogicalKeySet(LogicalKeyboardKey.arrowRight): const NextFocusIntent(),
@@ -105,7 +105,7 @@ class _LoginPageState extends State<LoginPage> {
       duration: Duration(seconds: 3),
       content: const Text('Could not sign in.'),
     );
-    Scaffold.of(context).showSnackBar(snackBar);
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
 
   void _navigateToPhotos(BuildContext context) {
@@ -115,13 +115,13 @@ class _LoginPageState extends State<LoginPage> {
 
 class LoginButton extends StatelessWidget {
   const LoginButton({
-    Key key,
-    @required this.globalKey,
-    @required this.focusNode,
+    Key? key,
+    required this.globalKey,
+    required this.focusNode,
   }) : super(key: key);
 
-  final GlobalKey<_LoginPageState> globalKey;
-  final FocusNode focusNode;
+  final GlobalKey<_LoginPageState>? globalKey;
+  final FocusNode? focusNode;
 
   @override
   Widget build(BuildContext context) {
@@ -131,9 +131,9 @@ class LoginButton extends StatelessWidget {
       padding: const EdgeInsets.all(15),
       child: const Text('Connect with Google Photos'),
       onPressed: () {
-        final LoginAction action = Actions.find<LoginIntent>(context);
-        if (action.isEnabled(LoginAction.intent)) {
-          action.invoke(LoginAction.intent);
+        final LoginAction action = Actions.find<LoginIntent>(context) as LoginAction;
+        if (action.isEnabled(LoginAction.intent as LoginIntent)) {
+          action.invoke(LoginAction.intent as LoginIntent);
         }
       },
     );

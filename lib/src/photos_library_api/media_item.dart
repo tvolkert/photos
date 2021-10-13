@@ -12,7 +12,13 @@ part 'media_item.g.dart';
 
 @JsonSerializable()
 class MediaItem {
-  MediaItem({this.id, this.description, this.productUrl, this.baseUrl, this.mediaMetadata});
+  MediaItem({
+    required this.id,
+    required this.description,
+    required this.productUrl,
+    required this.baseUrl,
+    required this.mediaMetadata,
+  });
 
   factory MediaItem.fromJson(Map<String, dynamic> json) =>
       _$MediaItemFromJson(json);
@@ -35,7 +41,7 @@ class MediaItem {
   /// See also:
   ///
   ///  * <https://developers.google.com/photos/library/reference/rest/v1/mediaItems#MediaItem.FIELDS.description>
-  final String description;
+  final String? description;
 
   /// The Google Photos URL for the media item.
   ///

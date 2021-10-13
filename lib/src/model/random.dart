@@ -1,6 +1,6 @@
 import 'dart:math';
 
-Random _random;
+Random? _random;
 Random get random {
   if (_random == null) {
     try {
@@ -9,5 +9,5 @@ Random get random {
       _random = Random(DateTime.now().millisecondsSinceEpoch);
     }
   }
-  return _random;
+  return _random!;
 }

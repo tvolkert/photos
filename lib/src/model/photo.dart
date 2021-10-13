@@ -1,19 +1,16 @@
 import 'dart:typed_data';
 
-import 'package:flutter/painting.dart';
+import 'package:flutter/cupertino.dart';
 
 import '../photos_library_api/media_item.dart';
 
+@immutable
 class Photo {
   /// Creates a [Photo].
   ///
   /// The [mediaItem], [size], [scale], and [bytes] arguments must all be
   /// non-null.
-  const Photo(this.mediaItem, this.size, this.scale, this.bytes)
-      : assert(mediaItem != null),
-        assert(size != null),
-        assert(scale != null),
-        assert(bytes != null);
+  const Photo(this.mediaItem, this.size, this.scale, this.bytes);
 
   /// The Google Photos API representation of this photo.
   ///

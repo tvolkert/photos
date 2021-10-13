@@ -1,7 +1,6 @@
 import 'dart:typed_data';
 import 'dart:ui';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:scoped_model/scoped_model.dart';
@@ -23,7 +22,7 @@ class PhotoMontage extends Model {
       (int index) => PhotoLayer._(
         montage: this,
         index: index,
-        columnCount: columnsByLayer[index],
+        columnCount: columnsByLayer[index]!,
       ),
       growable: false,
     );
@@ -39,14 +38,14 @@ class PhotoMontage extends Model {
   };
 
   final double padding;
-  List<PhotoLayer> _layers;
+  late List<PhotoLayer> _layers;
 
   int get layers => _layers.length;
 
-  Future<PhotoCard> addPhoto(MediaItem mediaItem) async {
+  Future<PhotoCard?> addPhoto(MediaItem mediaItem) async {
     List<PhotoColumn> candidates = _layers
-        .map<List<PhotoColumn>>((PhotoLayer layer) => layer._columns)
-        .expand<PhotoColumn>((List<PhotoColumn> columns) => columns)
+        .map<List<PhotoColumn>?>((PhotoLayer layer) => layer._columns)
+        .expand<PhotoColumn>((List<PhotoColumn>? columns) => columns!)
         .where((PhotoColumn column) => column._cards.isEmpty || column._cards.first.isClear)
         .toList();
     if (candidates.isEmpty) {
@@ -76,8 +75,8 @@ class PhotoMontage extends Model {
   }
 
   Iterable<PhotoCard> get cards => _layers.reversed
-      .map<List<PhotoColumn>>((PhotoLayer layer) => layer._columns)
-      .expand<PhotoColumn>((List<PhotoColumn> columns) => columns)
+      .map<List<PhotoColumn>?>((PhotoLayer layer) => layer._columns)
+      .expand<PhotoColumn>((List<PhotoColumn>? columns) => columns!)
       .map<List<PhotoCard>>((PhotoColumn column) => column._cards)
       .expand<PhotoCard>((List<PhotoCard> cards) => cards);
 
@@ -88,9 +87,9 @@ class PhotoMontage extends Model {
 
 class PhotoLayer {
   PhotoLayer._({
-    @required this.montage,
-    @required this.index,
-    int columnCount,
+    required this.montage,
+    required this.index,
+    required int columnCount,
   }) {
     _columns = List<PhotoColumn>.generate(
       columnCount,
@@ -101,15 +100,15 @@ class PhotoLayer {
 
   final PhotoMontage montage;
   final int index;
-  List<PhotoColumn> _columns;
+  List<PhotoColumn>? _columns;
 
-  int get columns => _columns.length;
+  int get columns => _columns!.length;
 }
 
 class PhotoColumn {
   PhotoColumn._({
-    @required this.layer,
-    @required this.index,
+    required this.layer,
+    required this.index,
   });
 
   final PhotoLayer layer;
@@ -133,8 +132,8 @@ class PhotoColumn {
 
 class PhotoCard {
   PhotoCard._({
-    @required this.photo,
-    @required this.column,
+    required this.photo,
+    required this.column,
   });
 
   final Photo photo;

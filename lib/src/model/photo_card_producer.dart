@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:typed_data';
 import 'dart:convert';
 
 import 'package:flutter/scheduler.dart';
@@ -29,7 +28,7 @@ abstract class PhotoCardProducer {
 
   static const Duration interval = Duration(seconds: 1, milliseconds: 750);
 
-  Timer _timer;
+  Timer? _timer;
 
   void start() {
     if (_timer != null) {
@@ -40,7 +39,7 @@ abstract class PhotoCardProducer {
 
   void stop() {
     if (_timer != null) {
-      _timer.cancel();
+      _timer!.cancel();
       _timer = null;
     }
   }
@@ -77,7 +76,7 @@ class _ApiPhotoCardProducer extends PhotoCardProducer {
             .skip(skip)
             .first;
         try {
-          MediaItem mediaItem = await model.getMediaItem(id);
+          MediaItem? mediaItem = await model.getMediaItem(id);
           if (mediaItem == null) {
             stop();
             return;

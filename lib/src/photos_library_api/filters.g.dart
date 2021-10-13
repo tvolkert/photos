@@ -6,13 +6,13 @@ part of 'filters.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-Filters _$FiltersFromJson(Map<String, dynamic> json) {
-  return Filters(
+Filters _$FiltersFromJson(Map<String, dynamic> json) => Filters(
       mediaTypeFilter: json['mediaTypeFilter'] == null
           ? null
           : MediaTypeFilter.fromJson(
-              json['mediaTypeFilter'] as Map<String, dynamic>));
-}
+              json['mediaTypeFilter'] as Map<String, dynamic>),
+    );
 
-Map<String, dynamic> _$FiltersToJson(Filters instance) =>
-    <String, dynamic>{'mediaTypeFilter': instance.mediaTypeFilter};
+Map<String, dynamic> _$FiltersToJson(Filters instance) => <String, dynamic>{
+      'mediaTypeFilter': instance.mediaTypeFilter,
+    };

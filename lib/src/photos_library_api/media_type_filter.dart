@@ -6,7 +6,7 @@ part 'media_type_filter.g.dart';
 
 @JsonSerializable()
 class MediaTypeFilter {
-  MediaTypeFilter({this.mediaTypes});
+  MediaTypeFilter({required this.mediaTypes});
 
   factory MediaTypeFilter.fromJson(Map<String, dynamic> json) =>
       _$MediaTypeFilterFromJson(json);

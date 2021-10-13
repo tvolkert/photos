@@ -4,7 +4,7 @@ part 'media_metadata.g.dart';
 
 @JsonSerializable()
 class MediaMetadata {
-  MediaMetadata({this.width, this.height});
+  MediaMetadata({required this.width, required this.height});
 
   factory MediaMetadata.fromJson(Map<String, dynamic> json) =>
       _$MediaMetadataFromJson(json);

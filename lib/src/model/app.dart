@@ -1,20 +1,14 @@
-import 'dart:developer' as developer;
-
 import 'package:flutter/widgets.dart';
 
 import 'files.dart';
 
 class AppBinding extends AppBindingBase with FilesBinding {
-  static bool _debugInitialized = false;
-
   /// Creates and initializes the application binding if necessary.
   ///
   /// Applications should call this method before calling [runApp].
   static Future<void> ensureInitialized() async {
     WidgetsFlutterBinding.ensureInitialized();
-    if (FilesBinding.instance == null) {
-      await AppBinding().initInstances();
-    }
+    await AppBinding().initInstances();
   }
 }
 

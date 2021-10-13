@@ -11,12 +11,10 @@ import '../model/photos_library_api_model.dart';
 
 class PhotosHome extends StatefulWidget {
   PhotosHome({
-    Key key,
-    @required this.montageBuilder,
-    @required this.producerBuilder,
-  })  : assert(montageBuilder != null),
-        assert(producerBuilder != null),
-        super(key: key);
+    Key? key,
+    required this.montageBuilder,
+    required this.producerBuilder,
+  }) : super(key: key);
 
   @override
   _PhotosHomeState createState() => _PhotosHomeState();
@@ -26,8 +24,8 @@ class PhotosHome extends StatefulWidget {
 }
 
 class _PhotosHomeState extends State<PhotosHome> {
-  PhotoMontage montage;
-  PhotoCardProducer producer;
+  late PhotoMontage montage;
+  late PhotoCardProducer producer;
 
   @override
   void initState() {
@@ -53,12 +51,12 @@ class _PhotosHomeState extends State<PhotosHome> {
 }
 
 class _PhotosCascade extends StatelessWidget {
-  _PhotosCascade({Key key}) : super(key: key);
+  _PhotosCascade({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return ScopedModelDescendant<PhotoMontage>(
-      builder: (BuildContext context, Widget child, PhotoMontage montage) {
+      builder: (BuildContext context, Widget? child, PhotoMontage montage) {
         return Stack(
           children: montage.cards.map<Widget>((PhotoCard card) {
             return FLoatingPhoto(
@@ -73,10 +71,9 @@ class _PhotosCascade extends StatelessWidget {
 
 class FLoatingPhoto extends StatefulWidget {
   FLoatingPhoto({
-    Key key,
-    @required this.card,
-  })  : assert(card != null),
-        super(key: key);
+    Key? key,
+    required this.card,
+  }) : super(key: key);
 
   final PhotoCard card;
 
@@ -85,7 +82,7 @@ class FLoatingPhoto extends StatefulWidget {
 }
 
 class _FLoatingPhotoState extends State<FLoatingPhoto> with SingleTickerProviderStateMixin {
-  Ticker ticker;
+  late final Ticker ticker;
 
   @override
   void initState() {
@@ -138,8 +135,8 @@ class _FLoatingPhotoState extends State<FLoatingPhoto> with SingleTickerProvider
 
 class PeriodicSpinner extends StatefulWidget {
   PeriodicSpinner({
-    Key key,
-    @required this.child,
+    Key? key,
+    required this.child,
   }) : super(key: key);
 
   final Widget child;
@@ -149,11 +146,11 @@ class PeriodicSpinner extends StatefulWidget {
 }
 
 class _PeriodicSpinnerState extends State<PeriodicSpinner> with TickerProviderStateMixin {
-  AnimationController controller;
-  Animation<double> angleAnimation;
-  Animation<double> transformAnimation;
-  Timer timer;
-  double angle;
+  late AnimationController controller;
+  late Animation<double> angleAnimation;
+  Animation<double>? transformAnimation;
+  late Timer timer;
+  double? angle;
 
   @override
   void initState() {

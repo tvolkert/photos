@@ -11,7 +11,7 @@ class Filters {
   factory Filters.fromJson(Map<String, dynamic> json) =>
       _$FiltersFromJson(json);
 
-  final MediaTypeFilter mediaTypeFilter;
+  final MediaTypeFilter? mediaTypeFilter;
 
   Map<String, dynamic> toJson() => _$FiltersToJson(this);
 }

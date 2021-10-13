@@ -11,14 +11,11 @@ import 'photos_page.dart';
 
 class HomePage extends StatelessWidget {
   HomePage({
-    Key key,
-    @required this.interactive,
-    @required this.montageBuilder,
-    @required this.producerBuilder,
-  })  : assert(interactive != null),
-        assert(montageBuilder != null),
-        assert(producerBuilder != null),
-        super(key: key);
+    Key? key,
+    required this.interactive,
+    required this.montageBuilder,
+    required this.producerBuilder,
+  }) : super(key: key);
 
   /// Whether the user is able to interact with the application.
   ///
@@ -35,7 +32,7 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ScopedModelDescendant<PhotosLibraryApiModel>(
-      builder: (BuildContext context, Widget child, PhotosLibraryApiModel apiModel) {
+      builder: (BuildContext context, Widget? child, PhotosLibraryApiModel apiModel) {
         switch (apiModel.state) {
           case PhotosLibraryApiState.pendingAuthentication:
             // Show a blank screen while we try to non-interactively sign in.
@@ -54,7 +51,6 @@ class HomePage extends StatelessWidget {
                 return PhotoCardProducer.asset(montage);
               },
             );
-            break;
           default:
             throw StateError('Auth state not supported: ${apiModel.state}');
         }

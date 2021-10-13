@@ -10,16 +10,16 @@ import 'app.dart';
 
 mixin FilesBinding on AppBindingBase {
   /// The singleton instance of this object.
-  static FilesBinding _instance;
+  static late FilesBinding _instance;
   static FilesBinding get instance => _instance;
 
-  File _nextPageTokenFile;
+  late File _nextPageTokenFile;
   File get nextPageTokenFile => _nextPageTokenFile;
 
-  File _photosFile;
+  late File _photosFile;
   File get photosFile => _photosFile;
 
-  File _countFile;
+  late File _countFile;
   File get countFile => _countFile;
 
   @override
