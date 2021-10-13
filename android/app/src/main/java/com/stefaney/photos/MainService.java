@@ -3,6 +3,7 @@ package com.stefaney.photos;
 import android.service.dreams.DreamService;
 import android.view.WindowManager.LayoutParams;
 
+import io.flutter.FlutterInjector;
 import io.flutter.embedding.android.FlutterView;
 import io.flutter.embedding.engine.FlutterEngine;
 import io.flutter.embedding.engine.dart.DartExecutor;
@@ -57,11 +58,8 @@ public class MainService extends DreamService {
     public void onDreamingStarted() {
         super.onDreamingStarted();
 
-        final String appBundlePath = FlutterMain.findAppBundlePath(getBaseContext());
-        if (appBundlePath != null) {
-            flutterEngine.getDartExecutor().executeDartEntrypoint(new DartExecutor.DartEntrypoint(
-                appBundlePath, "dream"
-            ));
-        }
+        flutterEngine.getDartExecutor().executeDartEntrypoint(new DartExecutor.DartEntrypoint(
+            FlutterInjector.instance().flutterLoader().findAppBundlePath(), "dream"
+        ));
     }
 }
