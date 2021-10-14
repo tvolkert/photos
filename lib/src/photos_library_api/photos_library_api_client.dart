@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import 'batch_get_request.dart';
@@ -18,58 +19,61 @@ class PhotosLibraryApiClient {
   final Future<Map<String, String>> _authHeaders;
 
   Future<ListMediaItemsResponse> listMediaItems(ListMediaItemsRequest request) async {
-    final http.Response response = await http.get(
-      Uri.https('photoslibrary.googleapis.com', '/v1/mediaItems', <String, dynamic>{
-        'pageSize': request.pageSize,
-        if (request.pageToken != null) 'pageToken': request.pageToken,
-      }),
-      headers: await _authHeaders,
-    );
+    final Uri url = Uri.https('photoslibrary.googleapis.com', '/v1/mediaItems', <String, dynamic>{
+      'pageSize': '${request.pageSize}',
+      if (request.pageToken != null) 'pageToken': request.pageToken,
+    });
+    final http.Response response = await http.get(url, headers: await _authHeaders);
 
-    if (response.statusCode != 200) {
-      throw PhotosApiException(response);
+    if (response.statusCode != HttpStatus.ok) {
+      throw PhotosApiException(url, response);
     }
 
-    return ListMediaItemsResponse.fromJson(jsonDecode(response.body));
+    try {
+      return ListMediaItemsResponse.fromJson(jsonDecode(response.body));
+    } catch (error) {
+      debugPrint(response.body);
+      rethrow;
+    }
   }
 
   Future<SearchMediaItemsResponse> searchMediaItems(SearchMediaItemsRequest request) async {
+    final Uri url = Uri.parse('https://photoslibrary.googleapis.com/v1/mediaItems:search');
     final http.Response response = await http.post(
-      Uri.parse('https://photoslibrary.googleapis.com/v1/mediaItems:search'),
+      url,
       body: jsonEncode(request),
       headers: await _authHeaders,
     );
 
     if (response.statusCode != 200) {
-      throw PhotosApiException(response);
+      throw PhotosApiException(url, response);
     }
 
     return SearchMediaItemsResponse.fromJson(jsonDecode(response.body));
   }
 
   Future<MediaItem> getMediaItem(String id) async {
+    final Uri url = Uri.parse('https://photoslibrary.googleapis.com/v1/mediaItems/$id');
     final http.Response response = await http.get(
-      Uri.parse('https://photoslibrary.googleapis.com/v1/mediaItems/$id'),
+      url,
       headers: await _authHeaders,
     );
 
     if (response.statusCode != HttpStatus.ok) {
-      throw GetMediaItemException(id, response);
+      throw GetMediaItemException(id, url, response);
     }
 
     return MediaItem.fromJson(jsonDecode(response.body));
   }
 
   Future<BatchGetResponse> batchGet(BatchGetRequest request) async {
-    final http.Response response = await http.get(
-      Uri.https('photoslibrary.googleapis.com', '/v1/mediaItems:batchGet', <String, dynamic>{
-        'mediaItemIds': request.mediaItemIds,
-      }),
-      headers: await _authHeaders,
-    );
+    final Uri url = Uri.https('photoslibrary.googleapis.com', '/v1/mediaItems:batchGet', <String, dynamic>{
+      'mediaItemIds': request.mediaItemIds,
+    });
+    final http.Response response = await http.get(url, headers: await _authHeaders);
 
     if (response.statusCode != 200) {
-      throw PhotosApiException(response);
+      throw PhotosApiException(url, response);
     }
 
     return BatchGetResponse.fromJson(jsonDecode(response.body));

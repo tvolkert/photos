@@ -1,6 +1,7 @@
 import 'package:json_annotation/json_annotation.dart';
 
 import 'media_item.dart';
+import 'status.dart';
 
 part 'media_item_result.g.dart';
 
@@ -19,7 +20,7 @@ class MediaItemResult {
   /// See also:
   ///
   ///  * <https://developers.google.com/photos/library/reference/rest/v1/mediaItems/batchGet#MediaItemResult.FIELDS.status>
-  final String? status;
+  final Status? status;
 
   /// Media item retrieved from the user's library.
   ///

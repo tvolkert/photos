@@ -30,7 +30,7 @@ class _PhotosHomeState extends State<PhotosHome> {
   @override
   void initState() {
     super.initState();
-    PhotosLibraryApiModel model = ScopedModel.of<PhotosLibraryApiModel>(context);
+    final PhotosLibraryApiModel model = ScopedModel.of<PhotosLibraryApiModel>(context);
     montage = widget.montageBuilder();
     producer = widget.producerBuilder(model, montage)..start();
   }

@@ -9,7 +9,7 @@ part of 'media_item.dart';
 MediaItem _$MediaItemFromJson(Map<String, dynamic> json) => MediaItem(
       id: json['id'] as String,
       description: json['description'] as String?,
-      productUrl: json['productUrl'] as String,
+      productUrl: json['productUrl'] as String?,
       baseUrl: json['baseUrl'] as String,
       mediaMetadata:
           MediaMetadata.fromJson(json['mediaMetadata'] as Map<String, dynamic>),

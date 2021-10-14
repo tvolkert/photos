@@ -4,16 +4,20 @@ part 'media_metadata.g.dart';
 
 @JsonSerializable()
 class MediaMetadata {
-  MediaMetadata({required this.width, required this.height});
+  const MediaMetadata({this.width, this.height});
 
   factory MediaMetadata.fromJson(Map<String, dynamic> json) =>
       _$MediaMetadataFromJson(json);
 
   /// Original width (in pixels) of the media item.
-  final String width;
+  ///
+  /// This will not be set for videos that are still in the "PROCESSING" state.
+  final String? width;
 
   /// Original height (in pixels) of the media item.
-  final String height;
+  ///
+  /// This will not be set for videos that are still in the "PROCESSING" state.
+  final String? height;
 
   Map<String, dynamic> toJson() => _$MediaMetadataToJson(this);
 }

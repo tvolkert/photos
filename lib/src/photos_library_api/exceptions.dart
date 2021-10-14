@@ -2,10 +2,13 @@ import 'package:http/http.dart' as http;
 
 class PhotosApiException implements Exception {
   /// Creates a new [PhotosApiException].
-  PhotosApiException(http.Response response)
+  PhotosApiException(this.requestUrl, http.Response response)
       : statusCode = response.statusCode,
         reasonPhrase = response.reasonPhrase,
         responseBody = response.body;
+
+  /// The URL of the request that was being made when this exception was thrown.
+  final Uri requestUrl;
 
   /// The HTTP status code that the server responded with.
   ///
@@ -22,7 +25,7 @@ class PhotosApiException implements Exception {
 
 class GetMediaItemException extends PhotosApiException {
   /// Creates a new [GetMediaItemException].
-  GetMediaItemException(this.mediaItemId, http.Response response) : super(response);
+  GetMediaItemException(this.mediaItemId, Uri requestUrl, http.Response response) : super(requestUrl, response);
 
   /// The id of the media item that was attempted to be retrieved.
   ///

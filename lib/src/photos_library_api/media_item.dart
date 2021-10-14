@@ -12,10 +12,10 @@ part 'media_item.g.dart';
 
 @JsonSerializable()
 class MediaItem {
-  MediaItem({
+  const MediaItem({
     required this.id,
-    required this.description,
-    required this.productUrl,
+    this.description,
+    this.productUrl,
     required this.baseUrl,
     required this.mediaMetadata,
   });
@@ -48,7 +48,7 @@ class MediaItem {
   /// See also:
   ///
   ///  * <https://developers.google.com/photos/library/reference/rest/v1/mediaItems#MediaItem.FIELDS.product_url>
-  final String productUrl;
+  final String? productUrl;
 
   /// A URL to the media item's bytes.
   ///
@@ -71,9 +71,12 @@ class MediaItem {
   final MediaMetadata mediaMetadata;
 
   /// The original raw size (in photo pixels) of the media item.
-  Size get size {
-    int width = int.parse(mediaMetadata.width);
-    int height = int.parse(mediaMetadata.height);
+  Size? get size {
+    if (mediaMetadata.width == null || mediaMetadata.height == null) {
+      return null;
+    }
+    int width = int.parse(mediaMetadata.width!);
+    int height = int.parse(mediaMetadata.height!);
     return Size(width.toDouble(), height.toDouble());
   }
 

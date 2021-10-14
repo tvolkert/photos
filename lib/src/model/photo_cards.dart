@@ -42,10 +42,10 @@ class PhotoMontage extends Model {
 
   int get layers => _layers.length;
 
-  Future<PhotoCard?> addPhoto(MediaItem mediaItem) async {
+  Future<PhotoCard?> addMediaItem(MediaItem mediaItem) async {
     List<PhotoColumn> candidates = _layers
-        .map<List<PhotoColumn>?>((PhotoLayer layer) => layer._columns)
-        .expand<PhotoColumn>((List<PhotoColumn>? columns) => columns!)
+        .map<List<PhotoColumn>>((PhotoLayer layer) => layer._columns)
+        .expand<PhotoColumn>((List<PhotoColumn> columns) => columns)
         .where((PhotoColumn column) => column._cards.isEmpty || column._cards.first.isClear)
         .toList();
     if (candidates.isEmpty) {
@@ -63,7 +63,7 @@ class PhotoMontage extends Model {
   }
 
   Future<Photo> _loadPhoto(MediaItem mediaItem, Size sizeConstraints) async {
-    Size photoSize = applyBoxFit(BoxFit.scaleDown, mediaItem.size, sizeConstraints).destination;
+    Size photoSize = applyBoxFit(BoxFit.scaleDown, mediaItem.size!, sizeConstraints).destination;
     Uint8List bytes = await mediaItem.load(photoSize);
 
     return Photo(
@@ -100,9 +100,9 @@ class PhotoLayer {
 
   final PhotoMontage montage;
   final int index;
-  List<PhotoColumn>? _columns;
+  late final List<PhotoColumn> _columns;
 
-  int get columns => _columns!.length;
+  int get columns => _columns.length;
 }
 
 class PhotoColumn {

@@ -1,19 +1,22 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io' show FileMode, HttpStatus;
 
+import 'package:file/file.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:scoped_model/scoped_model.dart';
 
 import 'files.dart';
+import '../photos_library_api/batch_get_request.dart';
+import '../photos_library_api/batch_get_response.dart';
 import '../photos_library_api/exceptions.dart';
-import '../photos_library_api/filters.dart';
+import '../photos_library_api/list_media_items_request.dart';
+import '../photos_library_api/list_media_items_response.dart';
 import '../photos_library_api/media_item.dart';
-import '../photos_library_api/media_type.dart';
-import '../photos_library_api/media_type_filter.dart';
+import '../photos_library_api/media_item_result.dart';
 import '../photos_library_api/photos_library_api_client.dart';
-import '../photos_library_api/search_media_items_request.dart';
-import '../photos_library_api/search_media_items_response.dart';
+import '../photos_library_api/status.dart';
 
 const Duration _kBackOffDuration = Duration(minutes: 1);
 
@@ -41,11 +44,15 @@ class PhotosLibraryApiModel extends Model {
   PhotosLibraryApiClient? _client;
   GoogleSignInAccount? _currentUser;
 
+  static const kBlockSize = 1024;
+  static const kPaddingByte = 0;
+  static const List<int> kPaddingStart = <int>[0, 0, 0, 0];
+
   final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: <String>[
     'https://www.googleapis.com/auth/photoslibrary.readonly',
   ]);
 
-  Future<void> _onSignInComplete({bool fetchPhotos = true}) async {
+  Future<void> _onSignInComplete() async {
     _currentUser = _googleSignIn.currentUser;
     PhotosLibraryApiState newState;
     if (_currentUser == null) {
@@ -54,44 +61,83 @@ class PhotosLibraryApiModel extends Model {
     } else {
       newState = PhotosLibraryApiState.authenticated;
       _client = PhotosLibraryApiClient(_currentUser!.authHeaders);
-    }
-    if (fetchPhotos && newState == PhotosLibraryApiState.authenticated) {
-      // TODO(tvolkert): don't delete, but don't blindly append
-      await _populatePhotosFile(delete: false);
+
+      final FilesBinding files = FilesBinding.instance;
+      bool upToDate = files.photosFile.existsSync();
+      if (upToDate) {
+        final FileStat stat = files.photosFile.statSync();
+        final Duration sinceLastModified = DateTime.now().difference(stat.modified);
+        upToDate = sinceLastModified < const Duration(days: 7);
+      }
+      if (!upToDate) {
+        _load().catchError((dynamic error, StackTrace stackTrace) {
+          print('$error\n$stackTrace');
+        });
+      }
     }
     state = newState;
   }
 
-  Future<void> _populatePhotosFile({bool delete = false}) async {
-    final FilesBinding files = FilesBinding.instance;
-    if (delete) {
-      if (files.nextPageTokenFile.existsSync()) files.nextPageTokenFile.deleteSync();
-      if (files.photosFile.existsSync()) files.photosFile.deleteSync();
-      if (files.countFile.existsSync()) files.countFile.deleteSync();
-    }
-    String? nextPageToken;
-    if (files.nextPageTokenFile.existsSync()) {
-      nextPageToken = await files.nextPageTokenFile.readAsString();
-    }
-    int count = 0;
-    if (files.countFile.existsSync()) {
-      count = int.parse(await files.countFile.readAsString());
-    }
-    try {
-      SearchMediaItemsResponse response = await _searchMediaItems(nextPageToken);
-      Iterable<String> ids = response.mediaItems.map((MediaItem mediaItem) => mediaItem.id);
-      await files.photosFile.writeAsString(ids.join('\n'), mode: FileMode.append, flush: true);
-      await files.countFile.writeAsString('${count + response.mediaItems.length}', flush: true);
-      if (response.nextPageToken != null) {
-        files.nextPageTokenFile.writeAsString(response.nextPageToken!, flush: true);
-        Timer(const Duration(seconds: 2), () {
-          _populatePhotosFile();
-        });
+  List<int> _padRight(List<int> bytes) {
+    assert(bytes.length <= kBlockSize);
+    return List<int>.generate(kBlockSize, (int index) {
+      if (index < bytes.length) {
+        return bytes[index];
+      } else if (index - bytes.length < kPaddingStart.length) {
+        return kPaddingStart[index - bytes.length];
+      } else {
+        return kPaddingByte;
       }
-    } on PhotosApiException {
-      Timer(const Duration(seconds: 2), () {
-        _populatePhotosFile();
-      });
+    });
+  }
+
+  Future<void> _load() async {
+    debugPrint('Reloading photo cache...');
+    final FilesBinding files = FilesBinding.instance;
+    final File tmpFile = files.photosFile.parent.childFile(files.photosFile.basename + ".tmp");
+    if (tmpFile.existsSync()) {
+      await tmpFile.delete(recursive: true);
+    }
+    assert(!tmpFile.existsSync());
+    try {
+      String? nextPageToken;
+      int count = 0;
+      while (count == 0 || nextPageToken != null) {
+        debugPrint('Loaded $count items...');
+        try {
+          final ListMediaItemsResponse response = await _listMediaItems(nextPageToken);
+          if (response.mediaItems.isEmpty && count == 0) {
+            await tmpFile.create();
+            break;
+          }
+          final List<int> bytes = response.mediaItems
+              .map((MediaItem item) => item.id)
+              .map<List<int>>((String id) => utf8.encode(id))
+              .map<List<int>>(_padRight)
+              .expand((List<int> bytes) => bytes)
+              .toList();
+          await tmpFile.writeAsBytes(bytes, mode: FileMode.append, flush: true);
+          count += response.mediaItems.length;
+          nextPageToken = response.nextPageToken;
+        } on PhotosApiException catch (error) {
+          if (error.statusCode == HttpStatus.tooManyRequests) {
+            await Future.delayed(const Duration(minutes: 1));
+            continue;
+          } else {
+            rethrow;
+          }
+        }
+        await Future.delayed(const Duration(milliseconds: 1));
+      }
+      debugPrint('Done loading $count items.');
+      await files.countFile.writeAsString('$count', flush: true);
+      await tmpFile.rename(files.photosFile.path);
+    } catch (error, stackTrace) {
+      print('$error\n$stackTrace');
+    } finally {
+      if (tmpFile.existsSync()) {
+        await tmpFile.delete(recursive: true);
+      }
     }
   }
 
@@ -122,22 +168,17 @@ class PhotosLibraryApiModel extends Model {
     state = PhotosLibraryApiState.unauthenticated;
   }
 
-  Future<void> signInSilently({bool fetchPhotosAfterSignIn = true}) async {
+  Future<void> signInSilently() async {
     await _googleSignIn.signInSilently();
-    await _onSignInComplete(fetchPhotos: fetchPhotosAfterSignIn);
+    await _onSignInComplete();
   }
 
-  Future<SearchMediaItemsResponse> _searchMediaItems([String? nextPageToken]) async {
-    final SearchMediaItemsRequest request = SearchMediaItemsRequest(
+  Future<ListMediaItemsResponse> _listMediaItems([String? nextPageToken]) async {
+    final ListMediaItemsRequest request = ListMediaItemsRequest(
       pageSize: 100,
       pageToken: nextPageToken,
-      filters: Filters(
-        mediaTypeFilter: MediaTypeFilter(
-          mediaTypes: <MediaType>[MediaType.photo],
-        ),
-      ),
     );
-    return await _client!.searchMediaItems(request);
+    return await _client!.listMediaItems(request);
   }
 
   Future<MediaItem?> getMediaItem(String id) async {
@@ -149,7 +190,7 @@ class PhotosLibraryApiModel extends Model {
         switch (error.statusCode) {
           case HttpStatus.unauthorized:
             debugPrint('Renewing OAuth access token...');
-            await signInSilently(fetchPhotosAfterSignIn: false);
+            await signInSilently();
             if (state == PhotosLibraryApiState.unauthenticated) {
               // TODO: retry
               debugPrint('Unable to renew OAuth access token; bailing out');
@@ -157,14 +198,72 @@ class PhotosLibraryApiModel extends Model {
             }
             break;
           case HttpStatus.tooManyRequests:
+            final PhotosLibraryApiState previousState = state;
             state = PhotosLibraryApiState.rateLimited;
             await Future.delayed(_kBackOffDuration);
-            return null;
+            state = previousState;
+            break;
           default:
             rethrow;
         }
       }
     }
     return result;
+  }
+
+  Future<List<MediaItem>> getMediaItems(List<String> mediaItemIds) async {
+    List<MediaItem>? results;
+    while (results == null) {
+      try {
+        final BatchGetRequest request = BatchGetRequest(mediaItemIds: mediaItemIds);
+        final BatchGetResponse response = await _client!.batchGet(request);
+        results = response.mediaItemResults
+            .where((MediaItemResult result) => result.mediaItem != null)
+            .map<MediaItem>((MediaItemResult result) => result.mediaItem!)
+            .toList();
+        assert(() {
+          final List<Status> failures = response.mediaItemResults
+              .where((MediaItemResult result) => result.status != null)
+              .map<Status>((MediaItemResult result) => result.status!)
+              .toList();
+          if (failures.isNotEmpty) {
+            final StringBuffer failureDetails = StringBuffer();
+            for (Status failure in failures) {
+              failureDetails.write('Error ${failure.code}: ${failure.message}');
+              if (failure.details != null) {
+                failureDetails.write(': ${failure.details}');
+              }
+              failureDetails.writeln();
+            }
+            debugPrint("Unable to fetch the following media items:\n$failureDetails");
+          }
+          return true;
+        }());
+      } on PhotosApiException catch (error) {
+        switch (error.statusCode) {
+          case HttpStatus.unauthorized:
+            debugPrint('Renewing OAuth access token...');
+            await signInSilently();
+            if (state == PhotosLibraryApiState.unauthenticated) {
+              // TODO: retry
+              debugPrint('Unable to renew OAuth access token; bailing out');
+              return <MediaItem>[];
+            }
+            break;
+          case HttpStatus.tooManyRequests:
+            final PhotosLibraryApiState previousState = state;
+            state = PhotosLibraryApiState.rateLimited;
+            await Future.delayed(_kBackOffDuration);
+            state = previousState;
+            break;
+          default:
+            debugPrint('${error.statusCode} ${error.reasonPhrase} : ${error.responseBody}');
+            debugPrint('Request was ${error.requestUrl}');
+            debugPrint('${StackTrace.current}');
+            return <MediaItem>[];
+        }
+      }
+    }
+    return results;
   }
 }

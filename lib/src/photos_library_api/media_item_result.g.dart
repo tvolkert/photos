@@ -8,7 +8,9 @@ part of 'media_item_result.dart';
 
 MediaItemResult _$MediaItemResultFromJson(Map<String, dynamic> json) =>
     MediaItemResult(
-      status: json['status'] as String?,
+      status: json['status'] == null
+          ? null
+          : Status.fromJson(json['status'] as Map<String, dynamic>),
       mediaItem: json['mediaItem'] == null
           ? null
           : MediaItem.fromJson(json['mediaItem'] as Map<String, dynamic>),

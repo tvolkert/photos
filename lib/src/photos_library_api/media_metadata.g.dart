@@ -8,8 +8,8 @@ part of 'media_metadata.dart';
 
 MediaMetadata _$MediaMetadataFromJson(Map<String, dynamic> json) =>
     MediaMetadata(
-      width: json['width'] as String,
-      height: json['height'] as String,
+      width: json['width'] as String?,
+      height: json['height'] as String?,
     );
 
 Map<String, dynamic> _$MediaMetadataToJson(MediaMetadata instance) =>
