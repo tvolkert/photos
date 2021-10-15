@@ -29,7 +29,7 @@ abstract class PhotoCardProducer {
 
   PhotoCardProducer._();
 
-  static const Duration interval = Duration(seconds: 1, milliseconds: 750);
+  static const Duration interval = Duration(seconds: 5);
 
   Timer? _timer;
 
