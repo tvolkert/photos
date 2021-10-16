@@ -15,6 +15,7 @@ dependencies:
   json_annotation: ^4.1.0
   path: any
   path_provider: any
+  video_player: any
 
 dev_dependencies:
   flutter_test:
