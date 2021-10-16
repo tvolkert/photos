@@ -59,7 +59,7 @@ class _PhotosCascade extends StatelessWidget {
       builder: (BuildContext context, Widget? child, PhotoMontage montage) {
         return Stack(
           children: montage.cards.map<Widget>((PhotoCard card) {
-            return FLoatingPhoto(
+            return FloatingPhoto(
               card: card,
             );
           }).toList(),
@@ -69,8 +69,8 @@ class _PhotosCascade extends StatelessWidget {
   }
 }
 
-class FLoatingPhoto extends StatefulWidget {
-  FLoatingPhoto({
+class FloatingPhoto extends StatefulWidget {
+  FloatingPhoto({
     Key? key,
     required this.card,
   }) : super(key: key);
@@ -78,10 +78,10 @@ class FLoatingPhoto extends StatefulWidget {
   final PhotoCard card;
 
   @override
-  _FLoatingPhotoState createState() => _FLoatingPhotoState();
+  _FloatingPhotoState createState() => _FloatingPhotoState();
 }
 
-class _FLoatingPhotoState extends State<FLoatingPhoto> with SingleTickerProviderStateMixin {
+class _FloatingPhotoState extends State<FloatingPhoto> with SingleTickerProviderStateMixin {
   late final Ticker ticker;
 
   @override
@@ -99,7 +99,7 @@ class _FLoatingPhotoState extends State<FLoatingPhoto> with SingleTickerProvider
   }
 
   @override
-  void didUpdateWidget(FLoatingPhoto oldWidget) {
+  void didUpdateWidget(FloatingPhoto oldWidget) {
     super.didUpdateWidget(oldWidget);
     // TODO: do something?
   }
