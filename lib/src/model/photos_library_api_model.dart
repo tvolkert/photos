@@ -91,14 +91,50 @@ class PhotosLibraryApiModel extends Model {
     });
   }
 
+  List<int> _serializeIds(Iterable<MediaItem> mediaItems) {
+    return mediaItems
+        .map((MediaItem item) => item.id)
+        .map<List<int>>((String id) => utf8.encode(id))
+        .map<List<int>>(_padRight)
+        .expand((List<int> bytes) => bytes)
+        .toList();
+  }
+
+  Iterable<MediaItem> _extractPhotos(Iterable<MediaItem> mediaItems) {
+    return mediaItems.where((MediaItem item) => item.mediaMetadata.photo != null);
+  }
+
+  Iterable<MediaItem> _extractVideos(Iterable<MediaItem> mediaItems) {
+    return mediaItems.where((MediaItem item) => item.mediaMetadata.video != null);
+  }
+
+  Future<void> _appendPhotosToFile(File file, Iterable<MediaItem> mediaItems) async {
+    final List<int> bytes = _serializeIds(_extractPhotos(mediaItems));
+    if (bytes.isNotEmpty) {
+      await file.writeAsBytes(bytes, mode: FileMode.append, flush: true);
+    }
+  }
+
+  Future<void> _appendVideosToFile(File file, Iterable<MediaItem> mediaItems) async {
+    final List<int> bytes = _serializeIds(_extractVideos(mediaItems));
+    if (bytes.isNotEmpty) {
+      await file.writeAsBytes(bytes, mode: FileMode.append, flush: true);
+    }
+  }
+
   Future<void> _load() async {
     debugPrint('Reloading photo cache...');
     final FilesBinding files = FilesBinding.instance;
-    final File tmpFile = files.photosFile.parent.childFile(files.photosFile.basename + ".tmp");
-    if (tmpFile.existsSync()) {
-      await tmpFile.delete(recursive: true);
+    final File tmpPhotoFile = files.photosFile.parent.childFile(files.photosFile.basename + ".tmp");
+    final File tmpVideoFile = files.videosFile.parent.childFile(files.videosFile.basename + ".tmp");
+    if (tmpPhotoFile.existsSync()) {
+      await tmpPhotoFile.delete(recursive: true);
     }
-    assert(!tmpFile.existsSync());
+    if (tmpVideoFile.existsSync()) {
+      await tmpVideoFile.delete(recursive: true);
+    }
+    assert(!tmpPhotoFile.existsSync());
+    assert(!tmpVideoFile.existsSync());
     try {
       String? nextPageToken;
       int count = 0;
@@ -107,16 +143,13 @@ class PhotosLibraryApiModel extends Model {
         try {
           final ListMediaItemsResponse response = await _listMediaItems(nextPageToken);
           if (response.mediaItems.isEmpty && count == 0) {
-            await tmpFile.create();
+            // Special case of an empty photo library.
+            await tmpPhotoFile.create();
+            await tmpVideoFile.create();
             break;
           }
-          final List<int> bytes = response.mediaItems
-              .map((MediaItem item) => item.id)
-              .map<List<int>>((String id) => utf8.encode(id))
-              .map<List<int>>(_padRight)
-              .expand((List<int> bytes) => bytes)
-              .toList();
-          await tmpFile.writeAsBytes(bytes, mode: FileMode.append, flush: true);
+          await _appendPhotosToFile(tmpPhotoFile, response.mediaItems);
+          await _appendVideosToFile(tmpVideoFile, response.mediaItems);
           count += response.mediaItems.length;
           nextPageToken = response.nextPageToken;
         } on PhotosApiException catch (error) {
@@ -130,13 +163,16 @@ class PhotosLibraryApiModel extends Model {
         await Future.delayed(const Duration(milliseconds: 1));
       }
       debugPrint('Done loading $count items.');
-      await files.countFile.writeAsString('$count', flush: true);
-      await tmpFile.rename(files.photosFile.path);
+      await tmpPhotoFile.rename(files.photosFile.path);
+      await tmpVideoFile.rename(files.videosFile.path);
     } catch (error, stackTrace) {
       print('$error\n$stackTrace');
     } finally {
-      if (tmpFile.existsSync()) {
-        await tmpFile.delete(recursive: true);
+      if (tmpPhotoFile.existsSync()) {
+        await tmpPhotoFile.delete(recursive: true);
+      }
+      if (tmpVideoFile.existsSync()) {
+        await tmpVideoFile.delete(recursive: true);
       }
     }
   }

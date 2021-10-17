@@ -68,10 +68,8 @@ class _ApiPhotoCardProducer extends PhotoCardProducer {
   Future<void> queueItems() async {
     final FilesBinding files = FilesBinding.instance;
 
-    if (files.countFile.existsSync() && files.photosFile.existsSync()) {
-      final int count = int.parse(await files.countFile.readAsString());
-      final int realCount = files.photosFile.statSync().size ~/ PhotosLibraryApiModel.kBlockSize;
-      assert(count == realCount);
+    if (files.photosFile.existsSync()) {
+      final int count = files.photosFile.statSync().size ~/ PhotosLibraryApiModel.kBlockSize;
       final List<String> mediaItemIds = <String>[];
       final RandomAccessFile handle = await files.photosFile.open();
       try {
@@ -114,7 +112,6 @@ class _ApiPhotoCardProducer extends PhotoCardProducer {
       }
       return true;
     }
-    int? paddingStart;
     for (int j = 0; j <= bytes.length - PhotosLibraryApiModel.kPaddingStart.length; j++) {
       if (matchAt(j)) {
         return j;

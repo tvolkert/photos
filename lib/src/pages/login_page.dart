@@ -125,10 +125,10 @@ class LoginButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return RaisedButton(
+    return ElevatedButton(
       key: globalKey,
       focusNode: focusNode,
-      padding: const EdgeInsets.all(15),
+      style: ElevatedButton.styleFrom(padding: const EdgeInsets.all(15)),
       child: const Text('Connect with Google Photos'),
       onPressed: () {
         final LoginAction action = Actions.find<LoginIntent>(context) as LoginAction;

@@ -13,14 +13,11 @@ mixin FilesBinding on AppBindingBase {
   static late FilesBinding _instance;
   static FilesBinding get instance => _instance;
 
-  late File _nextPageTokenFile;
-  File get nextPageTokenFile => _nextPageTokenFile;
-
   late File _photosFile;
   File get photosFile => _photosFile;
 
-  late File _countFile;
-  File get countFile => _countFile;
+  late File _videosFile;
+  File get videosFile => _videosFile;
 
   @override
   @protected
@@ -37,8 +34,7 @@ mixin FilesBinding on AppBindingBase {
       fs = MemoryFileSystem();
       documentsDirectory = fs.directory('documents')..createSync();
     }
-    _nextPageTokenFile = documentsDirectory.childFile('nextPageToken');
     _photosFile = documentsDirectory.childFile('photos');
-    _countFile = documentsDirectory.childFile('count');
+    _videosFile = documentsDirectory.childFile('videos');
   }
 }
