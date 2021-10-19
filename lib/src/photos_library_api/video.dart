@@ -9,7 +9,7 @@ class Video {
   const Video({
     this.cameraMake,
     this.cameraModel,
-    required this.fps,
+    this.fps,
     required this.status,
   });
 
@@ -20,7 +20,7 @@ class Video {
 
   final String? cameraModel;
 
-  final num fps;
+  final num? fps;
 
   final VideoProcessingStatus status;
 

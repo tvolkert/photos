@@ -9,7 +9,7 @@ part of 'video.dart';
 Video _$VideoFromJson(Map<String, dynamic> json) => Video(
       cameraMake: json['cameraMake'] as String?,
       cameraModel: json['cameraModel'] as String?,
-      fps: json['fps'] as num,
+      fps: json['fps'] as num?,
       status: _$enumDecode(_$VideoProcessingStatusEnumMap, json['status']),
     );
 
