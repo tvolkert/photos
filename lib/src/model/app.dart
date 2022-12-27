@@ -1,3 +1,6 @@
+import 'dart:developer' as developer;
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import 'files.dart';
@@ -7,13 +10,31 @@ class AppBinding extends AppBindingBase with FilesBinding {
   ///
   /// Applications should call this method before calling [runApp].
   static Future<void> ensureInitialized() async {
-    WidgetsFlutterBinding.ensureInitialized();
-    await AppBinding().initInstances();
+    await AppBinding().initialized;
   }
 }
 
 abstract class AppBindingBase {
+  /// Default abstract constructor for application bindings.
+  ///
+  /// First calls [initInstances] to have bindings initialize their
+  /// instance pointers and other state.
+  AppBindingBase() {
+    developer.Timeline.startSync('App initialization');
+
+    assert(!_debugInitialized);
+    _initialized = initInstances();
+    assert(_debugInitialized);
+
+    developer.postEvent('Photos.AppInitialization', <String, String>{});
+    developer.Timeline.finishSync();
+  }
+
   static bool _debugInitialized = false;
+
+  /// A future that completes once this app binding has been fully initialized.
+  late Future<void> _initialized;
+  Future<void> get initialized => _initialized;
 
   /// The initialization method. Subclasses override this method to hook into
   /// the app. Subclasses must call `super.initInstances()`.
@@ -30,5 +51,9 @@ abstract class AppBindingBase {
       _debugInitialized = true;
       return true;
     }());
+    WidgetsFlutterBinding.ensureInitialized();
   }
+
+  @override
+  String toString() => '<${objectRuntimeType(this, 'AppBindingBase')}>';
 }
