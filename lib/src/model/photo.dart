@@ -46,7 +46,7 @@ class Photo {
   final Uint8List bytes;
 
   @override
-  int get hashCode => hashValues(mediaItem.id, size);
+  int get hashCode => Object.hash(mediaItem.id, size);
 
   @override
   bool operator ==(dynamic other) {

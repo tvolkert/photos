@@ -10,7 +10,7 @@ import 'login_page.dart';
 import 'photos_page.dart';
 
 class HomePage extends StatelessWidget {
-  HomePage({
+  const HomePage({
     Key? key,
     required this.interactive,
     required this.montageBuilder,
@@ -38,7 +38,7 @@ class HomePage extends StatelessWidget {
             // Show a blank screen while we try to non-interactively sign in.
             return Container();
           case PhotosLibraryApiState.unauthenticated:
-            return interactive ? LoginPage() : InteractiveLoginRequiredPage();
+            return interactive ? const LoginPage() : const InteractiveLoginRequiredPage();
           case PhotosLibraryApiState.authenticated:
             return PhotosHome(
               montageBuilder: montageBuilder,

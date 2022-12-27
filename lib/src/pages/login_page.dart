@@ -29,15 +29,17 @@ class LoginAction extends Action<LoginIntent> {
     try {
       await onDoLogin() ? onLoginSuccess() : onLoginFailure();
     } on Exception catch (error) {
-      print(error);
+      debugPrint('$error');
       onLoginFailure();
     }
   }
 }
 
 class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
+
   @override
-  _LoginPageState createState() => _LoginPageState();
+  State<LoginPage> createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
@@ -49,7 +51,7 @@ class _LoginPageState extends State<LoginPage> {
     super.initState();
     globalKey = GlobalKey();
     focusNode = FocusNode();
-    WidgetsBinding.instance!.focusManager.rootScope.requestFocus(focusNode);
+    WidgetsBinding.instance.focusManager.rootScope.requestFocus(focusNode);
   }
 
   @override
@@ -101,9 +103,9 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _showSignInError(BuildContext context) {
-    final SnackBar snackBar = SnackBar(
+    const SnackBar snackBar = SnackBar(
       duration: Duration(seconds: 3),
-      content: const Text('Could not sign in.'),
+      content: Text('Could not sign in.'),
     );
     ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
@@ -120,7 +122,7 @@ class LoginButton extends StatelessWidget {
     required this.focusNode,
   }) : super(key: key);
 
-  final GlobalKey<_LoginPageState>? globalKey;
+  final GlobalKey<State<LoginPage>>? globalKey;
   final FocusNode? focusNode;
 
   @override

@@ -3,16 +3,16 @@ description: A Google Photos leanback experience
 version: 1.0.0
 
 environment:
-  sdk: '>=2.12.0 <3.0.0'
+  sdk: ">=2.17.0 <3.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
-  file: ^6.1.2
-  google_sign_in: ^5.1.1
-  scoped_model: ^2.0.0-nullsafety.0
-  http: ^0.13.4
-  json_annotation: ^4.1.0
+  file: any
+  google_sign_in: any
+  scoped_model: any
+  http: any
+  json_annotation: any
   path: any
   path_provider: any
   video_player: any
@@ -20,11 +20,12 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  build_runner: ^2.1.4
-  json_serializable: ^5.0.2
+  flutter_lints: any
+  build_runner: any
+  json_serializable: any
 
 builders:
-  json_serializable: ^5.0.2
+  json_serializable: any
 
 flutter:
   uses-material-design: true

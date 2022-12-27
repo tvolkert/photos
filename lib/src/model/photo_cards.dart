@@ -13,7 +13,7 @@ typedef PhotoMontageBuilder = PhotoMontage Function();
 
 class PhotoMontage extends Model {
   PhotoMontage({
-    int layerCount: defaultLayerCount,
+    int layerCount = defaultLayerCount,
     Map<int, int> columnsByLayer = defaultColumnsByLayer,
     this.padding = defaultPadding,
   }) {

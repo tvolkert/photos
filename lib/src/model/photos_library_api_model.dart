@@ -71,7 +71,7 @@ class PhotosLibraryApiModel extends Model {
       }
       if (!upToDate) {
         _load().catchError((dynamic error, StackTrace stackTrace) {
-          print('$error\n$stackTrace');
+          debugPrint('$error\n$stackTrace');
         });
       }
     }
@@ -125,8 +125,8 @@ class PhotosLibraryApiModel extends Model {
   Future<void> _load() async {
     debugPrint('Reloading photo cache...');
     final FilesBinding files = FilesBinding.instance;
-    final File tmpPhotoFile = files.photosFile.parent.childFile(files.photosFile.basename + ".tmp");
-    final File tmpVideoFile = files.videosFile.parent.childFile(files.videosFile.basename + ".tmp");
+    final File tmpPhotoFile = files.photosFile.parent.childFile('${files.photosFile.basename}.tmp');
+    final File tmpVideoFile = files.videosFile.parent.childFile('${files.videosFile.basename}.tmp');
     if (tmpPhotoFile.existsSync()) {
       await tmpPhotoFile.delete(recursive: true);
     }
@@ -166,7 +166,7 @@ class PhotosLibraryApiModel extends Model {
       await tmpPhotoFile.rename(files.photosFile.path);
       await tmpVideoFile.rename(files.videosFile.path);
     } catch (error, stackTrace) {
-      print('$error\n$stackTrace');
+      debugPrint('$error\n$stackTrace');
     } finally {
       if (tmpPhotoFile.existsSync()) {
         await tmpPhotoFile.delete(recursive: true);

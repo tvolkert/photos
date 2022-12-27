@@ -10,14 +10,14 @@ import '../model/photo_cards.dart';
 import '../model/photos_library_api_model.dart';
 
 class PhotosHome extends StatefulWidget {
-  PhotosHome({
+  const PhotosHome({
     Key? key,
     required this.montageBuilder,
     required this.producerBuilder,
   }) : super(key: key);
 
   @override
-  _PhotosHomeState createState() => _PhotosHomeState();
+  State<PhotosHome> createState() => _PhotosHomeState();
 
   final PhotoMontageBuilder montageBuilder;
   final PhotoCardProducerBuilder producerBuilder;
@@ -45,13 +45,13 @@ class _PhotosHomeState extends State<PhotosHome> {
   Widget build(BuildContext context) {
     return ScopedModel<PhotoMontage>(
       model: montage,
-      child: _PhotosCascade(),
+      child: const _PhotosCascade(),
     );
   }
 }
 
 class _PhotosCascade extends StatelessWidget {
-  _PhotosCascade({Key? key}) : super(key: key);
+  const _PhotosCascade({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -70,7 +70,7 @@ class _PhotosCascade extends StatelessWidget {
 }
 
 class FloatingPhoto extends StatefulWidget {
-  FloatingPhoto({
+  const FloatingPhoto({
     Key? key,
     required this.card,
   }) : super(key: key);
@@ -78,7 +78,7 @@ class FloatingPhoto extends StatefulWidget {
   final PhotoCard card;
 
   @override
-  _FloatingPhotoState createState() => _FloatingPhotoState();
+  State<FloatingPhoto> createState() => _FloatingPhotoState();
 }
 
 class _FloatingPhotoState extends State<FloatingPhoto> with SingleTickerProviderStateMixin {
@@ -108,6 +108,8 @@ class _FloatingPhotoState extends State<FloatingPhoto> with SingleTickerProvider
   Widget build(BuildContext context) {
     Size screenSize = MediaQuery.of(context).size;
     return Positioned(
+      left: screenSize.width * widget.card.column.left,
+      top: screenSize.height - widget.card.top,
       child: SizedBox(
         width: widget.card.column.width * screenSize.width,
         height: widget.card.column.width * screenSize.width,
@@ -117,8 +119,6 @@ class _FloatingPhotoState extends State<FloatingPhoto> with SingleTickerProvider
           scale: widget.card.photo.scale,
         ),
       ),
-      left: screenSize.width * widget.card.column.left,
-      top: screenSize.height - widget.card.top,
     );
   }
 
@@ -134,7 +134,7 @@ class _FloatingPhotoState extends State<FloatingPhoto> with SingleTickerProvider
 }
 
 class PeriodicSpinner extends StatefulWidget {
-  PeriodicSpinner({
+  const PeriodicSpinner({
     Key? key,
     required this.child,
   }) : super(key: key);
@@ -142,7 +142,7 @@ class PeriodicSpinner extends StatefulWidget {
   final Widget child;
 
   @override
-  _PeriodicSpinnerState createState() => _PeriodicSpinnerState();
+  State<PeriodicSpinner> createState() => _PeriodicSpinnerState();
 }
 
 class _PeriodicSpinnerState extends State<PeriodicSpinner> with TickerProviderStateMixin {
