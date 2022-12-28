@@ -14,10 +14,15 @@ class Photo {
 
   /// The Google Photos API representation of this photo.
   ///
+  /// This will only be set for photos that are backed by Google Photos.
+  /// Sometimes, the app will create photos from assets that are statically
+  /// bundled with the app (e.g. in the case of network errors), and for these
+  /// photos, this field will be null.
+  ///
   /// See also:
   ///
   ///  * <https://developers.google.com/photos/library/reference/rest/v1/mediaItems#MediaItem>
-  final MediaItem mediaItem;
+  final MediaItem? mediaItem;
 
   /// The size in logical pixels of the photo.
   ///
@@ -46,7 +51,7 @@ class Photo {
   final Uint8List bytes;
 
   @override
-  int get hashCode => Object.hash(mediaItem.id, size);
+  int get hashCode => Object.hash(mediaItem?.id, size);
 
   @override
   bool operator ==(dynamic other) {
@@ -54,6 +59,6 @@ class Photo {
       return false;
     }
     Photo typedOther = other;
-    return mediaItem.id == typedOther.mediaItem.id && size == typedOther.size;
+    return mediaItem?.id == typedOther.mediaItem?.id && size == typedOther.size;
   }
 }

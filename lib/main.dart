@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:photos/src/model/app.dart';
 import 'package:scoped_model/scoped_model.dart';
 
-import 'src/model/photo_cards.dart';
-import 'src/model/photo_producer.dart';
 import 'src/model/photos_library_api_model.dart';
 import 'src/pages/home_page.dart';
 
@@ -24,10 +22,6 @@ Future<void> run({required bool interactive}) async {
         model: apiModel,
         child: HomePage(
           interactive: interactive,
-          montageBuilder: () => PhotoMontage(),
-          producerBuilder: (PhotosLibraryApiModel model, PhotoMontage montage) {
-            return PhotoCardProducer(model, montage);
-          },
         ),
       ),
     ),

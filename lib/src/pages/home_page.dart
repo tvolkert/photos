@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:scoped_model/scoped_model.dart';
 
-import '../model/photo_cards.dart';
-import '../model/photo_producer.dart';
 import '../model/photos_library_api_model.dart';
 
 import 'interactive_login_required_page.dart';
@@ -13,8 +11,6 @@ class HomePage extends StatelessWidget {
   const HomePage({
     Key? key,
     required this.interactive,
-    required this.montageBuilder,
-    required this.producerBuilder,
   }) : super(key: key);
 
   /// Whether the user is able to interact with the application.
@@ -24,10 +20,6 @@ class HomePage extends StatelessWidget {
   /// application. In such cases, the application is said to be in a
   /// non-interactive state.
   final bool interactive;
-
-  final PhotoMontageBuilder montageBuilder;
-
-  final PhotoCardProducerBuilder producerBuilder;
 
   @override
   Widget build(BuildContext context) {
@@ -40,17 +32,9 @@ class HomePage extends StatelessWidget {
           case PhotosLibraryApiState.unauthenticated:
             return interactive ? const LoginPage() : const InteractiveLoginRequiredPage();
           case PhotosLibraryApiState.authenticated:
-            return PhotosHome(
-              montageBuilder: montageBuilder,
-              producerBuilder: producerBuilder,
-            );
+            return const GooglePhotosMontageContainer();
           case PhotosLibraryApiState.rateLimited:
-            return PhotosHome(
-              montageBuilder: montageBuilder,
-              producerBuilder: (PhotosLibraryApiModel model, PhotoMontage montage) {
-                return PhotoCardProducer.asset(montage);
-              },
-            );
+            return const AssetPhotosMontageContainer();
           default:
             throw StateError('Auth state not supported: ${apiModel.state}');
         }

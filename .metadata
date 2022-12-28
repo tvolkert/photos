@@ -18,6 +18,9 @@ migration:
     - platform: android
       create_revision: daa2ecf16534b286b7365d5c84554516b89cfd80
       base_revision: daa2ecf16534b286b7365d5c84554516b89cfd80
+    - platform: macos
+      create_revision: daa2ecf16534b286b7365d5c84554516b89cfd80
+      base_revision: daa2ecf16534b286b7365d5c84554516b89cfd80
 
   # User provided section
 
