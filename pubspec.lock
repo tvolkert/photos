@@ -257,12 +257,11 @@ packages:
     source: hosted
     version: "5.4.2"
   google_sign_in_android:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
-      name: google_sign_in_android
-      sha256: "41187ee48f8f3f7588cb932a5ab3cc8c83f354d1d50c750f61b240efac1b33d2"
-      url: "https://pub.dev"
-    source: hosted
+      path: "/Users/tvolkert/project/flutter/plugins/packages/google_sign_in/google_sign_in_android"
+      relative: false
+    source: path
     version: "6.1.4"
   google_sign_in_ios:
     dependency: transitive

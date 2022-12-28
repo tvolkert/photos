@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:scoped_model/scoped_model.dart';
 
-import '../model/photo_card_producer.dart';
 import '../model/photo_cards.dart';
+import '../model/photo_producer.dart';
 import '../model/photos_library_api_model.dart';
 
 import 'interactive_login_required_page.dart';

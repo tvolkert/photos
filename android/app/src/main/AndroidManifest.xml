@@ -12,6 +12,7 @@
         android:label="photos"
         android:allowBackup="false"
         android:banner="@mipmap/photos_banner"
+        android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <service
             android:name=".MainService"
@@ -24,8 +25,9 @@
         </service>
         <activity
             android:name=".MainActivity"
+            android:exported="true"
             android:launchMode="singleTop"
-	    android:theme="@style/Theme.Leanback"
+            android:theme="@style/Theme.Leanback"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">
