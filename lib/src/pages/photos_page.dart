@@ -100,7 +100,7 @@ class ContentProducerState extends State<ContentProducer> {
             } else {
               assert(snapshot.hasData);
               final Photo photo = snapshot.data!;
-              return Image(image: MemoryImage(photo.bytes));
+              return Image(image: photo.image);
             }
           case ConnectionState.active:
             // This state is unused in `FutureBuilder`.
@@ -383,6 +383,7 @@ class _MontageSpinnerState extends State<MontageSpinner> with SingleTickerProvid
   late AnimationController animation;
   late Animation<double> rotation;
   late Animation<double> distance;
+  late Timer timer;
 
   static const double _maxDistance = 800;
 
@@ -417,7 +418,7 @@ class _MontageSpinnerState extends State<MontageSpinner> with SingleTickerProvid
       ],
     ).animate(animation);
 
-    Timer.periodic(_rotationInterval, (Timer timer) {
+    timer = Timer.periodic(_rotationInterval, (Timer timer) {
       animation.forward(from: 0);
     });
   }
@@ -425,6 +426,7 @@ class _MontageSpinnerState extends State<MontageSpinner> with SingleTickerProvid
   @override
   void dispose() {
     super.dispose();
+    timer.cancel();
     animation.dispose();
   }
 

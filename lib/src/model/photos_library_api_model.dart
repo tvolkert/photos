@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show FileMode, HttpStatus;
+import 'dart:math' show Random;
 
 import 'package:file/file.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:scoped_model/scoped_model.dart';
 
-import 'files.dart';
 import '../photos_library_api/batch_get_request.dart';
 import '../photos_library_api/batch_get_response.dart';
 import '../photos_library_api/exceptions.dart';
@@ -18,7 +18,11 @@ import '../photos_library_api/media_item_result.dart';
 import '../photos_library_api/photos_library_api_client.dart';
 import '../photos_library_api/status.dart';
 
+import 'files.dart';
+import  'random.dart' as randomBinding;
+
 const Duration _kBackOffDuration = Duration(minutes: 1);
+const Duration maxStaleness = Duration(days: 7);
 
 enum PhotosLibraryApiState {
   /// The user has not yet attempted authentication or is in the process of
@@ -39,20 +43,66 @@ enum PhotosLibraryApiState {
   rateLimited,
 }
 
+/// ## The database files
+///
+/// This class manages two database files, [FilesBinding.photosFile] for photos
+/// and [FilesBinding.videosFile] for videos. Each file contains a list of
+/// Google Photos media item ids representing the entire set of photos (or
+/// videos) in the user's library. These files are created asynchronously when
+/// the user first signs in and then automatically updated for freshness (see
+/// [maxStaleness]) after that.
+///
+/// Each entry in a database file is a utf8-encoded [MediaItem.id], which is
+/// then right-padded with [paddingByte] until the byte sequence reaches a
+/// length of [blockSize].
 class PhotosLibraryApiModel extends Model {
   PhotosLibraryApiState _state = PhotosLibraryApiState.pendingAuthentication;
   PhotosLibraryApiClient? _client;
   GoogleSignInAccount? _currentUser;
 
-  static const kBlockSize = 1024;
-  static const kPaddingByte = 0;
-  static const List<int> kPaddingStart = <int>[0, 0, 0, 0];
+  /// The amount of space, in bytes, reserved for each photo entry in the
+  /// database files.
+  ///
+  /// Entries that take up less than this space will have a sequence of
+  /// [paddingByte] bytes appended to them until they reach this block size.
+  ///
+  /// Having this be a fixed size (rather than delineating entries with a
+  /// newline, for instance) allows us to randomly jump to any entry in a
+  /// database.
+  static const blockSize = 1024;
+
+  /// The value that will be appended to the end of each database entry until
+  /// the entry size reaches [blockSize].
+  ///
+  /// See also:
+  ///
+  ///  * [paddingStart], which marks the beginning of the padding sequence so
+  ///    that we can identify the padding bytes from the actual utf8 bytes.
+  static const paddingByte = 0;
+
+  /// A sequence of bytes that starts the padding sequence in a database entry.
+  ///
+  /// This allows us to identify the padding bytes from the actual utf8 bytes.
+  static const List<int> paddingStart = <int>[0, 0, 0, 0];
 
   final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: <String>[
     'https://www.googleapis.com/auth/photoslibrary.readonly',
   ]);
 
-  Future<void> _onSignInComplete() async {
+  /// Callback that runs once a sign-in attempt has completed, either
+  /// explicitly or silently.
+  ///
+  /// A completed sign-in attempt does _not_ mean that the user is
+  /// authenticated; the attempt might have been completed unsuccessfully or
+  /// been aborted.
+  ///
+  /// This method sets the API [state] and refreshes the database files if
+  /// needed (and if the user is authenticated).
+  ///
+  /// See also:
+  ///
+  ///  * [populateDatabase], which updates the database files.
+  Future<void> _handleSignInComplete() async {
     _currentUser = _googleSignIn.currentUser;
     PhotosLibraryApiState newState;
     if (_currentUser == null) {
@@ -61,32 +111,42 @@ class PhotosLibraryApiModel extends Model {
     } else {
       newState = PhotosLibraryApiState.authenticated;
       _client = PhotosLibraryApiClient(_currentUser!.authHeaders);
-
-      final FilesBinding files = FilesBinding.instance;
-      bool upToDate = files.photosFile.existsSync();
-      if (upToDate) {
-        final FileStat stat = files.photosFile.statSync();
-        final Duration sinceLastModified = DateTime.now().difference(stat.modified);
-        upToDate = sinceLastModified < const Duration(days: 7);
-      }
-      if (!upToDate) {
-        _load().catchError((dynamic error, StackTrace stackTrace) {
-          debugPrint('$error\n$stackTrace');
-        });
+      if (!_areDatabaseFilesUpToDate) {
+        _refreshDatabaseFiles();
       }
     }
     state = newState;
   }
 
+  /// Tells whether or not the database files are sufficiently up to date or
+  /// whether they need refreshing.
+  bool get _areDatabaseFilesUpToDate {
+    final FilesBinding files = FilesBinding.instance;
+    bool upToDate = files.photosFile.existsSync();
+    if (upToDate) {
+      final FileStat stat = files.photosFile.statSync();
+      final Duration sinceLastModified = DateTime.now().difference(stat.modified);
+      upToDate = sinceLastModified < maxStaleness;
+    }
+    return upToDate;
+  }
+
+  /// Refresh the database files.
+  void _refreshDatabaseFiles() {
+    populateDatabase().catchError((dynamic error, StackTrace stackTrace) {
+      debugPrint('$error\n$stackTrace');
+    });
+  }
+
   List<int> _padRight(List<int> bytes) {
-    assert(bytes.length <= kBlockSize);
-    return List<int>.generate(kBlockSize, (int index) {
+    assert(bytes.length <= blockSize);
+    return List<int>.generate(blockSize, (int index) {
       if (index < bytes.length) {
         return bytes[index];
-      } else if (index - bytes.length < kPaddingStart.length) {
-        return kPaddingStart[index - bytes.length];
+      } else if (index - bytes.length < paddingStart.length) {
+        return paddingStart[index - bytes.length];
       } else {
-        return kPaddingByte;
+        return paddingByte;
       }
     });
   }
@@ -122,7 +182,19 @@ class PhotosLibraryApiModel extends Model {
     }
   }
 
-  Future<void> _load() async {
+  /// Populates [FilesBinding.photosFile] and [FilesBinding.videosFile] with
+  /// the complete list of photos & videos that the sign-in user has in their
+  /// Google Photos library.
+  ///
+  /// Once this method is complete, batches of photo/video details will be able
+  /// to be loaded in random order from Google Photos. When this app is first
+  /// run, this method will not have completed yet (it'll be running in the
+  /// background), and the app will display asset photos instead of photos
+  /// loaded from Google Photos.
+  ///
+  /// This method is called automatically whenever it is detected that this
+  /// data is older than [maxStaleness].
+  Future<void> populateDatabase() async {
     debugPrint('Reloading photo cache...');
     final FilesBinding files = FilesBinding.instance;
     final File tmpPhotoFile = files.photosFile.parent.childFile('${files.photosFile.basename}.tmp');
@@ -177,6 +249,56 @@ class PhotosLibraryApiModel extends Model {
     }
   }
 
+  /// Picks [batchSize] media item ids at random from the photo database.
+  ///
+  /// This may only be called if the photos database file has already been
+  /// created.
+  Future<List<String>> pickRandomMediaItems(int batchSize, {Random? random}) async {
+    random ??= randomBinding.random;
+    final FilesBinding files = FilesBinding.instance;
+    assert(files.photosFile.existsSync());
+    final int count = files.photosFile.statSync().size ~/ blockSize;
+    final List<String> mediaItemIds = <String>[];
+    final RandomAccessFile handle = await files.photosFile.open();
+    try {
+      for (int i = 0; i < batchSize; i++) {
+        final int offset = random.nextInt(count) * blockSize;
+        handle.setPositionSync(offset);
+        final List<int> bytes = _unpadBytes(await handle.read(blockSize));
+        final String mediaItemId = utf8.decode(bytes);
+        mediaItemIds.add(mediaItemId);
+      }
+    } finally {
+      handle.closeSync();
+    }
+    assert(mediaItemIds.length == batchSize);
+    return mediaItemIds;
+  }
+
+  List<int> _unpadBytes(Uint8List bytes) {
+    final int? paddingStart = _getPaddingStart(bytes);
+    return paddingStart == null ? bytes : bytes.sublist(0, paddingStart);
+  }
+
+  int? _getPaddingStart(Uint8List bytes) {
+    bool matchAt(int index) {
+      assert(index >= 0);
+      assert(index + paddingStart.length <= bytes.length);
+      for (int i = 0; i < paddingStart.length; i++) {
+        if (bytes[index + i] != paddingStart[i]) {
+          return false;
+        }
+      }
+      return true;
+    }
+    for (int j = 0; j <= bytes.length - paddingStart.length; j++) {
+      if (matchAt(j)) {
+        return j;
+      }
+    }
+    return null;
+  }
+
   PhotosLibraryApiState get state => _state;
   set state(PhotosLibraryApiState value) {
     if (_state != value) {
@@ -193,7 +315,7 @@ class PhotosLibraryApiModel extends Model {
 
     assert(state != PhotosLibraryApiState.authenticated);
     await _googleSignIn.signIn();
-    await _onSignInComplete();
+    await _handleSignInComplete();
     return state == PhotosLibraryApiState.authenticated;
   }
 
@@ -206,7 +328,7 @@ class PhotosLibraryApiModel extends Model {
 
   Future<void> signInSilently() async {
     await _googleSignIn.signInSilently();
-    await _onSignInComplete();
+    await _handleSignInComplete();
   }
 
   Future<ListMediaItemsResponse> _listMediaItems([String? nextPageToken]) async {

@@ -79,9 +79,12 @@ class MediaItem {
     return Size(width.toDouble(), height.toDouble());
   }
 
-  Future<Uint8List> load(Size size) async {
-    String url = '$baseUrl=w${size.width.toInt()}-h${size.height.toInt()}';
+  /// Gets the URL to load this media item at the specified size.
+  String getSizedUrl(Size size) =>'$baseUrl=w${size.width.toInt()}-h${size.height.toInt()}';
 
+  /// Loads and returns the bytes of this media item.
+  Future<Uint8List> load(Size size) async {
+    final String url = getSizedUrl(size);
     final HttpClient httpClient = HttpClient();
     final Uri resolved = Uri.base.resolve(url);
     final HttpClientRequest request = await httpClient.getUrl(resolved);

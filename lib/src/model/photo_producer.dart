@@ -1,9 +1,5 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:math' as math;
-import 'dart:typed_data';
 
-import 'package:file/file.dart';
 import 'package:flutter/widgets.dart';
 
 import '../photos_library_api/media_item.dart';
@@ -12,7 +8,6 @@ import '../photos_library_api/media_metadata.dart';
 import 'files.dart';
 import 'photo.dart';
 import 'photos_library_api_model.dart';
-import 'random.dart';
 
 abstract class PhotoProducer {
   /// Creates a [PhotoProducer] that produces photos from Google Photos using
@@ -21,11 +16,14 @@ abstract class PhotoProducer {
   /// If the Google Photos API fails for any reason, this photo producer will
   /// fall back to producing photos that are pulled statically from assets that
   /// are bundled with this app (or, as a last resort, Todd's profile pic).
-  factory PhotoProducer(PhotosLibraryApiModel model) = _ApiPhotoCardProducer;
+  factory PhotoProducer(PhotosLibraryApiModel model) = _GooglePhotosPhotoProducer;
 
   /// Creates a [PhotoProducer] that produces photos that are pulled statically
   /// from assets that are bundled with this app.
-  factory PhotoProducer.asset() = _StaticPhotoProducer;
+  factory PhotoProducer.asset() = _AssetPhotoProducer;
+
+  /// Creates a [PhotoProducer] that produces a single static photo.
+  factory PhotoProducer.static() = _StaticPhotoProducer;
 
   const PhotoProducer._();
 
@@ -33,77 +31,101 @@ abstract class PhotoProducer {
   Future<Photo> produce(Size sizeConstraints);
 }
 
-class _ApiPhotoCardProducer extends PhotoProducer {
-  _ApiPhotoCardProducer(this.model) : super._();
+class _GooglePhotosPhotoProducer extends PhotoProducer {
+  _GooglePhotosPhotoProducer(this.model) : super._();
 
   final PhotosLibraryApiModel model;
-  final List<MediaItem> _queue = <MediaItem>[];
+  final List<MediaItem> queue = <MediaItem>[];
 
-  static const _kBatchSize = 50;
+  /// How many photos to load from the Google Photos API in one request.
+  ///
+  /// Batching saves the number of requests being made to the photos API, which
+  /// is not only more efficient, but it makes it less likely that the app will
+  /// be rate limited.
+  static const int _batchSize = 50;
 
+  /// Makes a batch request to the Google Photos API, and adds all the media
+  /// items that it loaded into the [queue].
+  ///
+  /// This method depends on the entire set of photo IDs having already been
+  /// loaded so that we can choose random photos from the main set. See
+  /// [PhotosLibraryApiModel.populateDatabase] for more info.
   Future<void> _queueItems() async {
     final FilesBinding files = FilesBinding.instance;
 
-    if (files.photosFile.existsSync()) {
-      final int count = files.photosFile.statSync().size ~/ PhotosLibraryApiModel.kBlockSize;
-      final List<String> mediaItemIds = <String>[];
-      final RandomAccessFile handle = await files.photosFile.open();
-      try {
-        for (int i = 0; i < _kBatchSize; i++) {
-          final int offset = random.nextInt(count) * PhotosLibraryApiModel.kBlockSize;
-          handle.setPositionSync(offset);
-          final List<int> bytes = _unpadBytes(await handle.read(PhotosLibraryApiModel.kBlockSize));
-          final String mediaItemId = utf8.decode(bytes);
-          mediaItemIds.add(mediaItemId);
-        }
-      } finally {
-        handle.closeSync();
-      }
-      assert(mediaItemIds.length == _kBatchSize);
-      Iterable<MediaItem> items = await model.getMediaItems(mediaItemIds);
-      items = items.where((MediaItem item) => item.size != null);
-      assert(() {
-        if (items.length != _kBatchSize) {
-          debugPrint('Expecting $_kBatchSize items, but retrieved ${items.length}');
-        }
-        return true;
-      }());
-      _queue.insertAll(0, items);
+    if (!files.photosFile.existsSync()) {
+      // We haven't yet finished loading the set of photo IDs from which to
+      // choose the next batch of media items; nothing to queue.
+      return;
     }
-  }
 
-  List<int> _unpadBytes(Uint8List bytes) {
-    final int? paddingStart = _getPaddingStart(bytes);
-    return paddingStart == null ? bytes : bytes.sublist(0, paddingStart);
-  }
-
-  int? _getPaddingStart(Uint8List bytes) {
-    bool matchAt(int index) {
-      assert(index >= 0);
-      assert(index + PhotosLibraryApiModel.kPaddingStart.length <= bytes.length);
-      for (int i = 0; i < PhotosLibraryApiModel.kPaddingStart.length; i++) {
-        if (bytes[index + i] != PhotosLibraryApiModel.kPaddingStart[i]) {
-          return false;
-        }
+    final List<String> mediaItemIds = await model.pickRandomMediaItems(_batchSize);
+    Iterable<MediaItem> items = await model.getMediaItems(mediaItemIds);
+    items = items.where((MediaItem item) => item.size != null);
+    assert(() {
+      if (items.length != _batchSize) {
+        debugPrint('Expecting $_batchSize items, but retrieved ${items.length}');
       }
       return true;
-    }
-    for (int j = 0; j <= bytes.length - PhotosLibraryApiModel.kPaddingStart.length; j++) {
-      if (matchAt(j)) {
-        return j;
-      }
-    }
-    return null;
+    }());
+    queue.insertAll(0, items);
   }
 
   @override
   Future<Photo> produce(Size sizeConstraints) async {
-    if (_queue.isEmpty) {
+    if (queue.isEmpty) {
+      // The queue can still be empty after this call, e.g. if the database
+      // files haven't been created yet.
       await _queueItems();
     }
 
-    MediaItem mediaItem = _queue.isEmpty ? await _produceStaticMediaItem() : _queue.removeLast();
-    return await _loadPhoto(mediaItem, sizeConstraints);
+    if (queue.isEmpty) {
+      return await const _AssetPhotoProducer().produce(sizeConstraints);
+    } else {
+      final MediaItem mediaItem = queue.removeLast();
+      final Size photoSize = applyBoxFit(BoxFit.scaleDown, mediaItem.size!, sizeConstraints).destination;
+      return Photo(
+        id: mediaItem.id,
+        mediaItem: mediaItem,
+        size: photoSize / WidgetsBinding.instance.window.devicePixelRatio,
+        scale: WidgetsBinding.instance.window.devicePixelRatio,
+        image: NetworkImage(mediaItem.getSizedUrl(photoSize)),
+      );
+    }
+  }
+}
+
+class _AssetPhotoProducer extends PhotoProducer {
+  const _AssetPhotoProducer() : super._();
+
+  static const List<String> _assets = <String>[
+    'assets/DSC_0013.jpg',
+    'assets/DSC_0021-2.jpg',
+    'assets/DSC_0135-2.jpg',
+    'assets/DSC_0256.jpg',
+    'assets/IMG_20150220_174328408_HDR.jpg',
+    'assets/Image13.jpeg',
+    'assets/P1010073.jpg',
+    'assets/TCV_7314.jpg',
+    'assets/TCV_8294.jpg',
+  ];
+
+  static int _assetIndex = 0;
+  static int get _nextAssetIndex {
+    int index = _assetIndex;
+    _assetIndex = (_assetIndex + 1) % _assets.length;
+    return index;
+  }
+
+  @override
+  Future<Photo> produce(Size sizeConstraints) async {
+    final String assetName = _assets[_nextAssetIndex];
+    return Photo(
+      id: assetName,
+      size: sizeConstraints,
+      scale: WidgetsBinding.instance.window.devicePixelRatio,
+      image: AssetImage(assetName),
+    );
   }
 }
 
@@ -112,104 +134,22 @@ class _StaticPhotoProducer extends PhotoProducer {
 
   @override
   Future<Photo> produce(Size sizeConstraints) async {
-    return await _nextAssetPhoto(sizeConstraints);
-  }
-}
-
-Future<MediaItem> _produceStaticMediaItem() async {
-  const MediaItem sample = MediaItem(
-    id: 'test',
-    baseUrl:
-    'https://lh3.googleusercontent.com/ogw/ADea4I4W_CNuQmCCPTLweMp6ndpZmVOgwL7GCClptOUZG6M',
-    mediaMetadata: MediaMetadata(
-      width: '429',
-      height: '429',
-    ),
-  );
-  return sample;
-}
-
-Future<Photo> _loadPhoto(MediaItem mediaItem, Size size) async {
-  const int maxAttempts = 3;
-  Size photoSize = applyBoxFit(BoxFit.scaleDown, mediaItem.size!, size).destination;
-  Uint8List? bytes;
-  for (int attempt = 1; bytes == null && attempt <= maxAttempts; attempt++) {
-    try {
-      bytes = await mediaItem.load(photoSize);
-    } catch (error, stack) {
-      if (attempt == maxAttempts) {
-        debugPrintStack(
-          stackTrace: stack,
-          label: 'Could not load ${mediaItem.baseUrl} ($error); giving up...',
-        );
-      } else {
-        await Future.delayed(Duration(milliseconds: math.pow(2, attempt + 4).toInt()));
-      }
-    }
-  }
-
-  if (bytes == null) {
-    // We were unable to load the photo over the network; fall back to an asset
-    return _nextAssetPhoto(size);
-  } else {
+    const Size staticSize = Size(429, 429);
+    final MediaItem staticMediaItem = MediaItem(
+      id: 'profile_photo',
+      baseUrl:
+          'https://lh3.googleusercontent.com/ogw/ADea4I4W_CNuQmCCPTLweMp6ndpZmVOgwL7GCClptOUZG6M',
+      mediaMetadata: MediaMetadata(
+        width: '${staticSize.width}',
+        height: '${staticSize.height}',
+      ),
+    );
     return Photo(
-      mediaItem,
-      photoSize / WidgetsBinding.instance.window.devicePixelRatio,
-      WidgetsBinding.instance.window.devicePixelRatio,
-      bytes,
+      id: staticMediaItem.id,
+      mediaItem: staticMediaItem,
+      size: staticSize,
+      scale: WidgetsBinding.instance.window.devicePixelRatio,
+      image: NetworkImage(staticMediaItem.getSizedUrl(staticSize)),
     );
   }
 }
-
-const List<AssetImage> _assetImages = <AssetImage>[
-  AssetImage('assets/DSC_0013.jpg'),
-  AssetImage('assets/DSC_0021-2.jpg'),
-  AssetImage('assets/DSC_0135-2.jpg'),
-  AssetImage('assets/DSC_0256.jpg'),
-  AssetImage('assets/IMG_20150220_174328408_HDR.jpg'),
-  AssetImage('assets/Image13.jpeg'),
-  AssetImage('assets/P1010073.jpg'),
-  AssetImage('assets/TCV_7314.jpg'),
-  AssetImage('assets/TCV_8294.jpg'),
-];
-
-int _assetIndex = 0;
-int get _nextAssetIndex {
-  int index = _assetIndex;
-  _assetIndex = (_assetIndex + 1) % _assetImages.length;
-  return index;
-}
-
-Future<Photo> _nextAssetPhoto(Size size) async {
-  final AssetImage asset = _assetImages[_nextAssetIndex];
-  final ImageConfiguration configuration = ImageConfiguration(
-    bundle: asset.bundle,
-    devicePixelRatio: WidgetsBinding.instance.window.devicePixelRatio,
-    textDirection: TextDirection.ltr,
-    size: size,
-  );
-  final ImageStream stream = asset.resolve(configuration);
-  final Completer<Uint8List> streamBytes = Completer<Uint8List>();
-  stream.addListener(ImageStreamListener((ImageInfo image, bool synchronousCall) async {
-    // TODO: we're doing work to convert to bytes here, only to then do work
-    // to go back to the image later. Maybe there's a better data
-    // representation that would save the extra work.
-    ByteData? byteData = await image.image.toByteData();
-    if (byteData != null) {
-      streamBytes.complete(byteData.buffer.asUint8List());
-    } else {
-      // Something has gone very wrong. Fall back to using bytes of a
-      // statically compiled error image.
-      streamBytes.complete(Uint8List.fromList(_errorImageBytes));
-    }
-  }));
-  return Photo(
-    null,
-    size,
-    WidgetsBinding.instance.window.devicePixelRatio,
-    await streamBytes.future,
-  );
-}
-
-// TODO: encode proper bytes here
-const List<int> _errorImageBytes = <int>[];

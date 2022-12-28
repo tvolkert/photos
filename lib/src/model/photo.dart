@@ -1,16 +1,21 @@
-import 'dart:typed_data';
-
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/painting.dart';
 
 import '../photos_library_api/media_item.dart';
 
 @immutable
 class Photo {
   /// Creates a [Photo].
-  ///
-  /// The [mediaItem], [size], [scale], and [bytes] arguments must all be
-  /// non-null.
-  const Photo(this.mediaItem, this.size, this.scale, this.bytes);
+  const Photo({
+    required this.id,
+    this.mediaItem,
+    required this.size,
+    required this.scale,
+    required this.image,
+  });
+
+  /// A unique identifier of the photo.
+  final String id;
 
   /// The Google Photos API representation of this photo.
   ///
@@ -43,15 +48,12 @@ class Photo {
   ///  * [ImageInfo.scale]
   final double scale;
 
-  /// The encoded image bytes.
-  ///
-  /// The image format depends on the format that was used when the photo was
-  /// originally uploaded to Google Photos. The most common formats are JPG,
-  /// PNG, and GIF.
-  final Uint8List bytes;
+  /// Identifies the image that backs this photo, without committing to the
+  /// precise final asset.
+  final ImageProvider<Object> image;
 
   @override
-  int get hashCode => Object.hash(mediaItem?.id, size);
+  int get hashCode => Object.hash(id, size);
 
   @override
   bool operator ==(dynamic other) {
@@ -59,6 +61,6 @@ class Photo {
       return false;
     }
     Photo typedOther = other;
-    return mediaItem?.id == typedOther.mediaItem?.id && size == typedOther.size;
+    return id == typedOther.id && size == typedOther.size;
   }
 }
