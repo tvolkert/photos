@@ -2,14 +2,16 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:file/file.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/material.dart';
-import 'package:photos/src/model/dream.dart';
 import 'package:scoped_model/scoped_model.dart';
 
+import '../model/dream.dart';
+import '../model/files.dart';
 import '../model/photo.dart';
 import '../model/photo_producer.dart';
 import '../model/photos_library_api_model.dart';
@@ -322,10 +324,13 @@ class WakeUpOnKeyPress extends StatefulWidget {
 class _WakeUpOnKeyPressState extends State<WakeUpOnKeyPress> {
   late FocusNode focusNode;
 
-  void _handleKeyEvent(KeyEvent event) {
+  void _handleKeyEvent(KeyEvent event) async {
     if (event is KeyDownEvent) {
       if (event.logicalKey == LogicalKeyboardKey.digit0) {
         AppContainer.of(context).togglePerformanceOverlay();
+      } else if (event.logicalKey == LogicalKeyboardKey.digit9) {
+        List<File> copies = await FilesBinding.instance.saveFilesToDownloads();
+        debugPrint('Copied database files to ${copies.map<String>((File f) => f.path)}');
       } else {
         DreamBinding.instance.wakeUp();
       }

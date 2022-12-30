@@ -12,7 +12,6 @@ class AppBinding extends AppBindingBase with FilesBinding, DreamBinding {
   /// Applications should call this method before calling [runApp].
   static Future<void> ensureInitialized() async {
     await AppBinding().initialized;
-    WidgetsFlutterBinding.ensureInitialized();
   }
 }
 
@@ -53,6 +52,10 @@ abstract class AppBindingBase {
       _debugInitialized = true;
       return true;
     }());
+    // This lives here instead of in `AppBinding.ensureInitialized()` to ensure
+    // that the widgets binding is initialized before subclass implementations
+    // of `initInstances()` (which may rely on things like `ServicesBinding`).
+    WidgetsFlutterBinding.ensureInitialized();
   }
 
   @override

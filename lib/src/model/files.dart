@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' as io;
 
 import 'package:file/file.dart';
 import 'package:file/local.dart';
@@ -29,12 +30,37 @@ mixin FilesBinding on AppBindingBase {
     FileSystem fs = const LocalFileSystem();
     Directory documentsDirectory;
     try {
-      documentsDirectory = fs.directory(await getApplicationDocumentsDirectory());
-    } catch (error) {
+      documentsDirectory = fs.directory(await getApplicationDocumentsDirectory()).absolute;
+    } catch (error, stack) {
+      debugPrint('Error getting application documents directory: $error\n$stack');
       fs = MemoryFileSystem();
       documentsDirectory = fs.directory('documents')..createSync();
     }
     _photosFile = documentsDirectory.childFile('photos');
     _videosFile = documentsDirectory.childFile('videos');
+  }
+
+  Future<List<File>> saveFilesToDownloads() async {
+    const FileSystem fs = LocalFileSystem();
+    io.Directory? rawDir;
+    try {
+      rawDir = await getDownloadsDirectory();
+    } on UnsupportedError {
+      // Fallthrough
+    }
+    rawDir ??= await getTemporaryDirectory();
+    final Directory baseDir = fs.directory(rawDir);
+    final List<File> copies = <File>[];
+    if (photosFile.existsSync()) {
+      final File photosFileCopy = baseDir.childFile(photosFile.basename);
+      await photosFile.copy(photosFileCopy.path);
+      copies.add(photosFileCopy);
+    }
+    if (videosFile.existsSync()) {
+      final File videosFileCopy = baseDir.childFile(videosFile.basename);
+      await videosFile.copy(videosFileCopy.path);
+      copies.add(videosFileCopy);
+    }
+    return copies;
   }
 }
