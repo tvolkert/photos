@@ -73,7 +73,8 @@ class ContentProducer extends StatefulWidget {
   State<ContentProducer> createState() => ContentProducerState();
 
   static ContentProducerState of(BuildContext context) {
-    _ContentProducerScope scope = context.dependOnInheritedWidgetOfExactType<_ContentProducerScope>()!;
+    _ContentProducerScope scope =
+        context.dependOnInheritedWidgetOfExactType<_ContentProducerScope>()!;
     return scope.state;
   }
 }
@@ -100,7 +101,7 @@ class ContentProducerState extends State<ContentProducer> {
       builder: (BuildContext context, AsyncSnapshot<Photo> snapshot) {
         switch (snapshot.connectionState) {
           case ConnectionState.none:
-            // Fallthrough
+          // Fallthrough
           case ConnectionState.waiting:
             // TODO: Return something with UI
             return Container();
@@ -243,25 +244,70 @@ class CardKey extends ValueKey<int> {
   const CardKey(super.value);
 }
 
-class AppContainer extends StatelessWidget {
+class AppContainer extends StatefulWidget {
   const AppContainer({super.key, required this.child});
 
   final Widget child;
 
   @override
+  State<AppContainer> createState() => AppContainerState();
+
+  static AppContainerState of(BuildContext context) {
+    _AppContainerScope scope = context.dependOnInheritedWidgetOfExactType<_AppContainerScope>()!;
+    return scope.state;
+  }
+}
+
+class AppContainerState extends State<AppContainer> {
+  bool _forcePerformanceOverlay = false;
+
+  void togglePerformanceOverlay() {
+    setState(() {
+      _forcePerformanceOverlay = !_forcePerformanceOverlay;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    Widget child = this.child;
+    Widget child = widget.child;
     if (!ContentProducer.of(context).isInteractive) {
       child = WakeUpOnKeyPress(
         child: child,
       );
     }
-    return MediaQuery.fromWindow(
-      child: ClipRect(
-        child: child,
+    bool showPerformanceOverlay = _forcePerformanceOverlay;
+    assert(() {
+      showPerformanceOverlay |= _debugExtraInfo;
+      return true;
+    }());
+    return _AppContainerScope(
+      state: this,
+      child: MediaQuery.fromWindow(
+        child: ClipRect(
+          child: Stack(
+            fit: StackFit.passthrough,
+            children: <Widget>[
+              child,
+              if (showPerformanceOverlay)
+                Positioned(top: 0, left: 0, right: 0, child: PerformanceOverlay.allEnabled()),
+            ],
+          ),
+        ),
       ),
     );
   }
+}
+
+class _AppContainerScope extends InheritedWidget {
+  const _AppContainerScope({
+    required this.state,
+    required Widget child,
+  }) : super(child: child);
+
+  final AppContainerState state;
+
+  @override
+  bool updateShouldNotify(_AppContainerScope old) => false;
 }
 
 class WakeUpOnKeyPress extends StatefulWidget {
@@ -278,7 +324,11 @@ class _WakeUpOnKeyPressState extends State<WakeUpOnKeyPress> {
 
   void _handleKeyEvent(KeyEvent event) {
     if (event is KeyDownEvent) {
-      DreamBinding.instance.wakeUp();
+      if (event.logicalKey == LogicalKeyboardKey.digit0) {
+        AppContainer.of(context).togglePerformanceOverlay();
+      } else {
+        DreamBinding.instance.wakeUp();
+      }
     }
   }
 
@@ -484,10 +534,10 @@ class _MontageSpinnerState extends State<MontageSpinner> with SingleTickerProvid
       duration: const Duration(seconds: 3),
       vsync: this,
     )..addListener(() {
-      setState(() {
-        // Updated animation values will be reflected in `build()`
+        setState(() {
+          // Updated animation values will be reflected in `build()`
+        });
       });
-    });
     rotation = ThetaTween().chain(CurveTween(curve: Curves.easeInOutCubic)).animate(animation);
     distance = TweenSequence<double>(
       <TweenSequenceItem<double>>[
@@ -551,10 +601,12 @@ class Montage extends MultiChildRenderObjectWidget {
   final double distance;
 
   @override
-  RenderObject createRenderObject(BuildContext context) => RenderMontage(
-    rotation: rotation,
-    distance: distance,
-  );
+  RenderObject createRenderObject(BuildContext context) {
+    return RenderMontage(
+      rotation: rotation,
+      distance: distance,
+    );
+  }
 
   @override
   void updateRenderObject(BuildContext context, RenderMontage renderObject) {

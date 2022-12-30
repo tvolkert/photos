@@ -6,6 +6,7 @@ import 'dart:math' show Random;
 import 'package:file/file.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:http/http.dart' as http;
 import 'package:scoped_model/scoped_model.dart';
 
 import '../photos_library_api/batch_get_request.dart';
@@ -232,6 +233,11 @@ class PhotosLibraryApiModel extends Model {
           } else {
             rethrow;
           }
+        } on http.ClientException catch (error) {
+          debugPrint('Error trying to list media items: $error');
+          debugPrint('Retrying in 10 seconds');
+          await Future.delayed(const Duration(seconds: 10));
+          continue;
         }
         await Future.delayed(const Duration(milliseconds: 1));
       }
