@@ -106,8 +106,6 @@ class _AssetPhotoProducer extends PhotoProducer {
     'assets/IMG_20150220_174328408_HDR.jpg',
     'assets/Image13.jpeg',
     'assets/P1010073.jpg',
-    'assets/TCV_7314.jpg',
-    'assets/TCV_8294.jpg',
   ];
 
   static int _assetIndex = 0;

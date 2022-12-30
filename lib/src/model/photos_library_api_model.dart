@@ -19,7 +19,8 @@ import '../photos_library_api/photos_library_api_client.dart';
 import '../photos_library_api/status.dart';
 
 import 'files.dart';
-import  'random.dart' as randomBinding;
+import 'random.dart' as random_binding;
+import 'random_picking_strategy.dart';
 
 const Duration _kBackOffDuration = Duration(minutes: 1);
 const Duration maxStaleness = Duration(days: 7);
@@ -254,15 +255,16 @@ class PhotosLibraryApiModel extends Model {
   /// This may only be called if the photos database file has already been
   /// created.
   Future<List<String>> pickRandomMediaItems(int batchSize, {Random? random}) async {
-    random ??= randomBinding.random;
+    random ??= random_binding.random;
     final FilesBinding files = FilesBinding.instance;
     assert(files.photosFile.existsSync());
     final int count = files.photosFile.statSync().size ~/ blockSize;
+    final RandomPickingStrategy strategy = RandomPickingStrategy(max: count, random: random);
     final List<String> mediaItemIds = <String>[];
     final RandomAccessFile handle = await files.photosFile.open();
     try {
-      for (int i = 0; i < batchSize; i++) {
-        final int offset = random.nextInt(count) * blockSize;
+      for (int index in strategy.pickN(batchSize)) {
+        final int offset = index * blockSize;
         handle.setPositionSync(offset);
         final List<int> bytes = _unpadBytes(await handle.read(blockSize));
         final String mediaItemId = utf8.decode(bytes);
@@ -291,6 +293,7 @@ class PhotosLibraryApiModel extends Model {
       }
       return true;
     }
+
     for (int j = 0; j <= bytes.length - paddingStart.length; j++) {
       if (matchAt(j)) {
         return j;

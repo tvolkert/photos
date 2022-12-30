@@ -2,15 +2,17 @@ import 'dart:developer' as developer;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
+import 'package:photos/src/model/dream.dart';
 
 import 'files.dart';
 
-class AppBinding extends AppBindingBase with FilesBinding {
+class AppBinding extends AppBindingBase with FilesBinding, DreamBinding {
   /// Creates and initializes the application binding if necessary.
   ///
   /// Applications should call this method before calling [runApp].
   static Future<void> ensureInitialized() async {
     await AppBinding().initialized;
+    WidgetsFlutterBinding.ensureInitialized();
   }
 }
 
@@ -51,7 +53,6 @@ abstract class AppBindingBase {
       _debugInitialized = true;
       return true;
     }());
-    WidgetsFlutterBinding.ensureInitialized();
   }
 
   @override

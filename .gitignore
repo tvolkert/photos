@@ -30,3 +30,6 @@
 /build/
 .flutter-plugins-dependencies
 generated_plugin_registrant.dart
+
+# Android related
+local.properties

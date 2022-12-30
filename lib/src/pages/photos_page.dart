@@ -4,8 +4,10 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:photos/src/model/dream.dart';
 import 'package:scoped_model/scoped_model.dart';
 
 import '../model/photo.dart';
@@ -60,10 +62,12 @@ class ContentProducer extends StatefulWidget {
     super.key,
     required this.producer,
     required this.child,
+    required this.interactive,
   });
 
   final PhotoProducer producer;
   final Widget child;
+  final bool interactive;
 
   @override
   State<ContentProducer> createState() => ContentProducerState();
@@ -82,6 +86,13 @@ class ContentProducerState extends State<ContentProducer> {
       child: widget.child,
     );
   }
+
+  /// Tells whether this content producer is running in interactive mode.
+  ///
+  /// When interactive mode is false, the app was started automatically (it is
+  /// running as a screensaver), and it is expected that the user is able to
+  /// stop the app with simple keypad interaction.
+  bool get isInteractive => widget.interactive;
 
   Widget produce(Size sizeConstraints) {
     return FutureBuilder<Photo>(
@@ -128,23 +139,35 @@ class _ContentProducerScope extends InheritedWidget {
 }
 
 class GooglePhotosMontageContainer extends StatelessWidget {
-  const GooglePhotosMontageContainer({super.key});
+  const GooglePhotosMontageContainer({super.key, required this.interactive});
+
+  final bool interactive;
 
   @override
   Widget build(BuildContext context) {
     final PhotosLibraryApiModel model = ScopedModel.of<PhotosLibraryApiModel>(context);
     final PhotoProducer producer = PhotoProducer(model);
-    return ContentProducer(producer: producer, child: const MontageContainer());
+    return ContentProducer(
+      producer: producer,
+      interactive: interactive,
+      child: const MontageContainer(),
+    );
   }
 }
 
 class AssetPhotosMontageContainer extends StatelessWidget {
-  const AssetPhotosMontageContainer({super.key});
+  const AssetPhotosMontageContainer({super.key, required this.interactive});
+
+  final bool interactive;
 
   @override
   Widget build(BuildContext context) {
     final PhotoProducer producer = PhotoProducer.asset();
-    return ContentProducer(producer: producer, child: const MontageContainer());
+    return ContentProducer(
+      producer: producer,
+      interactive: interactive,
+      child: const MontageContainer(),
+    );
   }
 }
 
@@ -227,7 +250,76 @@ class AppContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MediaQuery.fromWindow(child: child);
+    Widget child = this.child;
+    if (!ContentProducer.of(context).isInteractive) {
+      child = WakeUpOnKeyPress(
+        child: child,
+      );
+    }
+    return MediaQuery.fromWindow(
+      child: ClipRect(
+        child: child,
+      ),
+    );
+  }
+}
+
+class WakeUpOnKeyPress extends StatefulWidget {
+  const WakeUpOnKeyPress({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  State<WakeUpOnKeyPress> createState() => _WakeUpOnKeyPressState();
+}
+
+class _WakeUpOnKeyPressState extends State<WakeUpOnKeyPress> {
+  late FocusNode focusNode;
+
+  void _handleKeyEvent(KeyEvent event) {
+    if (event is KeyDownEvent) {
+      DreamBinding.instance.wakeUp();
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    focusNode = FocusNode();
+    SchedulerBinding.instance.addPostFrameCallback((Duration timeStamp) {
+      focusNode.requestFocus();
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    assert(() {
+      if (ContentProducer.of(context).isInteractive) {
+        throw FlutterError.fromParts(<DiagnosticsNode>[
+          ErrorSummary('WakeUpOnKeyPress widget was used in interactive mode.'),
+          ErrorDescription('The purpose of WakeUpOnKeyPress is to call '
+              'wakeUp(), a method that only makes sense when in '
+              'non-interactive (screensaver) mode.'),
+        ]);
+      }
+      return true;
+    }());
+  }
+
+  @override
+  void dispose() {
+    focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return KeyboardListener(
+      focusNode: focusNode,
+      onKeyEvent: _handleKeyEvent,
+      child: widget.child,
+    );
   }
 }
 
@@ -244,7 +336,6 @@ class _MontageControllerState extends State<MontageController> {
   final Map<CardKey, Offset> _locations = <CardKey, Offset>{};
   final Map<CardKey, Widget> _content = <CardKey, Widget>{};
   late int _scheduledFrameCallbackId;
-  late Size _screenSize;
   int _currentFrame = 0;
 
   void _scheduleFrame({bool rescheduling = false}) {
@@ -266,12 +357,6 @@ class _MontageControllerState extends State<MontageController> {
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _screenSize = MediaQuery.sizeOf(context);
-  }
-
-  @override
   void dispose() {
     SchedulerBinding.instance.cancelFrameCallbackWithId(_scheduledFrameCallbackId);
     super.dispose();
@@ -279,9 +364,14 @@ class _MontageControllerState extends State<MontageController> {
 
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(builder: buildWithConstraints);
+  }
+
+  Widget buildWithConstraints(BuildContext context, BoxConstraints constraints) {
     final List<MontageCard> children = <MontageCard>[];
+    // TODO: some of the work being done here should be done in `onFrame()`
     for (MontageCardBuilder builder in widget.builders) {
-      Offset location = builder.calculateLocation(_currentFrame, _screenSize);
+      Offset location = builder.calculateLocation(_currentFrame, constraints.biggest);
       Offset? lastLocation = _locations[builder.key];
       Widget? content = _content[builder.key];
       assert(content == null || lastLocation != null);

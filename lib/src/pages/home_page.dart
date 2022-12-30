@@ -3,7 +3,6 @@ import 'package:scoped_model/scoped_model.dart';
 
 import '../model/photos_library_api_model.dart';
 
-import 'interactive_login_required_page.dart';
 import 'login_page.dart';
 import 'photos_page.dart';
 
@@ -30,13 +29,11 @@ class HomePage extends StatelessWidget {
             // Show a blank screen while we try to non-interactively sign in.
             return Container();
           case PhotosLibraryApiState.unauthenticated:
-            return interactive ? const LoginPage() : const InteractiveLoginRequiredPage();
+            return LoginPage(interactive: interactive);
           case PhotosLibraryApiState.authenticated:
-            return const GooglePhotosMontageContainer();
+            return GooglePhotosMontageContainer(interactive: interactive);
           case PhotosLibraryApiState.rateLimited:
-            return const AssetPhotosMontageContainer();
-          default:
-            throw StateError('Auth state not supported: ${apiModel.state}');
+            return AssetPhotosMontageContainer(interactive: interactive);
         }
       },
     );
