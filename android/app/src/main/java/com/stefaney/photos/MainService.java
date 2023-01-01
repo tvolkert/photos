@@ -15,14 +15,9 @@ import io.flutter.embedding.engine.FlutterEngine;
 import io.flutter.embedding.engine.dart.DartExecutor;
 import io.flutter.embedding.engine.loader.FlutterLoader;
 import io.flutter.embedding.engine.plugins.util.GeneratedPluginRegister;
-import io.flutter.plugin.common.MethodCall;
-import io.flutter.plugin.common.MethodChannel;
-import io.flutter.plugin.common.MethodChannel.Result;
 
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR1)
 public class MainService extends DreamService {
-    private static final String CHANNEL_NAME = "photos.stefaney.com/channel";
-    private static final String METHOD_NAME_WAKE_UP = "wakeUp";
     private static final LayoutParams matchParent =
         new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
 
@@ -37,19 +32,7 @@ public class MainService extends DreamService {
         loader.ensureInitializationComplete(getApplicationContext(), new String[] {});
         flutterEngine = new FlutterEngine(this);
         GeneratedPluginRegister.registerGeneratedPlugins(flutterEngine);
-        MethodChannel channel = new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), CHANNEL_NAME);
-        channel.setMethodCallHandler((MethodCall methodCall, Result result) -> {
-            switch (methodCall.method) {
-                case METHOD_NAME_WAKE_UP:
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                        wakeUp();
-                    } else {
-                        finish();
-                    }
-                    result.success(null);
-                    break;
-            }
-        });
+        PhotosChannel.register(flutterEngine, getApplicationContext(), this);
     }
 
     @Override
