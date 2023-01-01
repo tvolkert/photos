@@ -1,7 +1,6 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io' show FileMode, HttpStatus;
-import 'dart:math' show Random;
+import 'dart:math' as math;
 
 import 'package:file/file.dart';
 import 'package:flutter/foundation.dart';
@@ -19,6 +18,7 @@ import '../photos_library_api/media_item_result.dart';
 import '../photos_library_api/photos_library_api_client.dart';
 import '../photos_library_api/status.dart';
 
+import 'codecs.dart';
 import 'files.dart';
 import 'random.dart' as random_binding;
 import 'random_picking_strategy.dart';
@@ -61,31 +61,6 @@ class PhotosLibraryApiModel extends Model {
   PhotosLibraryApiState _state = PhotosLibraryApiState.pendingAuthentication;
   PhotosLibraryApiClient? _client;
   GoogleSignInAccount? _currentUser;
-
-  /// The amount of space, in bytes, reserved for each photo entry in the
-  /// database files.
-  ///
-  /// Entries that take up less than this space will have a sequence of
-  /// [paddingByte] bytes appended to them until they reach this block size.
-  ///
-  /// Having this be a fixed size (rather than delineating entries with a
-  /// newline, for instance) allows us to randomly jump to any entry in a
-  /// database.
-  static const blockSize = 1024;
-
-  /// The value that will be appended to the end of each database entry until
-  /// the entry size reaches [blockSize].
-  ///
-  /// See also:
-  ///
-  ///  * [paddingStart], which marks the beginning of the padding sequence so
-  ///    that we can identify the padding bytes from the actual utf8 bytes.
-  static const paddingByte = 0;
-
-  /// A sequence of bytes that starts the padding sequence in a database entry.
-  ///
-  /// This allows us to identify the padding bytes from the actual utf8 bytes.
-  static const List<int> paddingStart = <int>[0, 0, 0, 0];
 
   final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: <String>[
     'https://www.googleapis.com/auth/photoslibrary.readonly',
@@ -140,28 +115,6 @@ class PhotosLibraryApiModel extends Model {
     });
   }
 
-  List<int> _padRight(List<int> bytes) {
-    assert(bytes.length <= blockSize);
-    return List<int>.generate(blockSize, (int index) {
-      if (index < bytes.length) {
-        return bytes[index];
-      } else if (index - bytes.length < paddingStart.length) {
-        return paddingStart[index - bytes.length];
-      } else {
-        return paddingByte;
-      }
-    });
-  }
-
-  List<int> _serializeIds(Iterable<MediaItem> mediaItems) {
-    return mediaItems
-        .map((MediaItem item) => item.id)
-        .map<List<int>>((String id) => utf8.encode(id))
-        .map<List<int>>(_padRight)
-        .expand((List<int> bytes) => bytes)
-        .toList();
-  }
-
   Iterable<MediaItem> _extractPhotos(Iterable<MediaItem> mediaItems) {
     return mediaItems.where((MediaItem item) => item.mediaMetadata.photo != null);
   }
@@ -171,14 +124,16 @@ class PhotosLibraryApiModel extends Model {
   }
 
   Future<void> _appendPhotosToFile(File file, Iterable<MediaItem> mediaItems) async {
-    final List<int> bytes = _serializeIds(_extractPhotos(mediaItems));
+    const DatabaseFileCodec codec = DatabaseFileCodec();
+    final List<int> bytes = codec.encodeMediaItemIds(_extractPhotos(mediaItems));
     if (bytes.isNotEmpty) {
       await file.writeAsBytes(bytes, mode: FileMode.append, flush: true);
     }
   }
 
   Future<void> _appendVideosToFile(File file, Iterable<MediaItem> mediaItems) async {
-    final List<int> bytes = _serializeIds(_extractVideos(mediaItems));
+    const DatabaseFileCodec codec = DatabaseFileCodec();
+    final List<int> bytes = codec.encodeMediaItemIds(_extractVideos(mediaItems));
     if (bytes.isNotEmpty) {
       await file.writeAsBytes(bytes, mode: FileMode.append, flush: true);
     }
@@ -260,20 +215,21 @@ class PhotosLibraryApiModel extends Model {
   ///
   /// This may only be called if the photos database file has already been
   /// created.
-  Future<List<String>> pickRandomMediaItems(int batchSize, {Random? random}) async {
+  Future<List<String>> pickRandomMediaItems(int batchSize, {math.Random? random}) async {
     random ??= random_binding.random;
+    const DatabaseFileCodec codec = DatabaseFileCodec();
     final FilesBinding files = FilesBinding.instance;
     assert(files.photosFile.existsSync());
-    final int count = files.photosFile.statSync().size ~/ blockSize;
+    final int count = files.photosFile.statSync().size ~/ DatabaseFileCodec.blockSize;
     final RandomPickingStrategy strategy = RandomPickingStrategy(max: count, random: random);
     final List<String> mediaItemIds = <String>[];
     final RandomAccessFile handle = await files.photosFile.open();
     try {
       for (int index in strategy.pickN(batchSize)) {
-        final int offset = index * blockSize;
+        final int offset = index * DatabaseFileCodec.blockSize;
         handle.setPositionSync(offset);
-        final List<int> bytes = _unpadBytes(await handle.read(blockSize));
-        final String mediaItemId = utf8.decode(bytes);
+        final Uint8List byteBlock = await handle.read(DatabaseFileCodec.blockSize);
+        final String mediaItemId = codec.decodeMediaItemId(byteBlock);
         mediaItemIds.add(mediaItemId);
       }
     } finally {
@@ -281,31 +237,6 @@ class PhotosLibraryApiModel extends Model {
     }
     assert(mediaItemIds.length == batchSize);
     return mediaItemIds;
-  }
-
-  List<int> _unpadBytes(Uint8List bytes) {
-    final int? paddingStart = _getPaddingStart(bytes);
-    return paddingStart == null ? bytes : bytes.sublist(0, paddingStart);
-  }
-
-  int? _getPaddingStart(Uint8List bytes) {
-    bool matchAt(int index) {
-      assert(index >= 0);
-      assert(index + paddingStart.length <= bytes.length);
-      for (int i = 0; i < paddingStart.length; i++) {
-        if (bytes[index + i] != paddingStart[i]) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    for (int j = 0; j <= bytes.length - paddingStart.length; j++) {
-      if (matchAt(j)) {
-        return j;
-      }
-    }
-    return null;
   }
 
   PhotosLibraryApiState get state => _state;
