@@ -115,12 +115,16 @@ class PhotosLibraryApiModel extends Model {
     });
   }
 
-  Iterable<MediaItem> _extractPhotos(Iterable<MediaItem> mediaItems) {
-    return mediaItems.where((MediaItem item) => item.mediaMetadata.photo != null);
+  Iterable<String> _extractPhotos(Iterable<MediaItem> mediaItems) {
+    return mediaItems
+        .where((MediaItem item) => item.mediaMetadata.photo != null)
+        .map<String>((MediaItem item) => item.id);
   }
 
-  Iterable<MediaItem> _extractVideos(Iterable<MediaItem> mediaItems) {
-    return mediaItems.where((MediaItem item) => item.mediaMetadata.video != null);
+  Iterable<String> _extractVideos(Iterable<MediaItem> mediaItems) {
+    return mediaItems
+        .where((MediaItem item) => item.mediaMetadata.video != null)
+        .map<String>((MediaItem item) => item.id);
   }
 
   Future<void> _appendPhotosToFile(File file, Iterable<MediaItem> mediaItems) async {

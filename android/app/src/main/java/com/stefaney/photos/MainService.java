@@ -50,10 +50,10 @@ public class MainService extends DreamService {
 
     @Override
     public void onDetachedFromWindow() {
-        super.onDetachedFromWindow();
         flutterView.detachFromFlutterEngine();
         flutterView = null;
         flutterEngine.getLifecycleChannel().appIsDetached();
+        super.onDetachedFromWindow();
     }
 
     @Override
@@ -74,8 +74,8 @@ public class MainService extends DreamService {
 
     @Override
     public void onDreamingStopped() {
-        super.onDreamingStopped();
         flutterEngine.getLifecycleChannel().appIsPaused();
+        super.onDreamingStopped();
     }
 
     @Override

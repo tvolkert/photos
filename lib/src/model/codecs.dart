@@ -4,8 +4,6 @@ import 'dart:typed_data';
 
 import 'package:file/file.dart';
 
-import '../photos_library_api/media_item.dart';
-
 /// A class containing statistics about the contents of a database file.
 ///
 /// This class can be created and passed to [DatabaseFileCodec.decodeFile],
@@ -60,8 +58,8 @@ class DatabaseFileCodec {
   /// of the media item.
   ///
   /// The returned byte array is suitable for insertion into a database file.
-  List<int> encodeMediaItemId(MediaItem mediaItem) {
-    final List<int> result = _padRight(utf8.encode(mediaItem.id));
+  List<int> encodeMediaItemId(String mediaItemId) {
+    final List<int> result = _padRight(utf8.encode(mediaItemId));
     assert(result.length == blockSize);
     return result;
   }
@@ -70,12 +68,12 @@ class DatabaseFileCodec {
   /// of the media items.
   ///
   /// The returned byte array is suitable for insertion into a database file.
-  List<int> encodeMediaItemIds(Iterable<MediaItem> mediaItems) {
-    final List<int> result = mediaItems
-        .map<List<int>>((MediaItem item) => encodeMediaItemId(item))
+  List<int> encodeMediaItemIds(Iterable<String> mediaItemIds) {
+    final List<int> result = mediaItemIds
+        .map<List<int>>((String id) => encodeMediaItemId(id))
         .expand((List<int> bytes) => bytes)
         .toList();
-    assert(result.length == mediaItems.length * blockSize);
+    assert(result.length == mediaItemIds.length * blockSize);
     return result;
   }
 

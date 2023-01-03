@@ -36,6 +36,7 @@ class _GooglePhotosPhotoProducer extends PhotoProducer {
 
   final PhotosLibraryApiModel model;
   final List<MediaItem> queue = <MediaItem>[];
+  Completer<void>? _queueCompleter;
 
   /// How many photos to load from the Google Photos API in one request.
   ///
@@ -51,8 +52,12 @@ class _GooglePhotosPhotoProducer extends PhotoProducer {
   /// loaded so that we can choose random photos from the main set. See
   /// [PhotosLibraryApiModel.populateDatabase] for more info.
   Future<void> _queueItems() async {
-    final FilesBinding files = FilesBinding.instance;
+    if (_queueCompleter != null) {
+      return await _queueCompleter!.future;
+    }
+    final Completer<void> completer = _queueCompleter = Completer<void>();
 
+    final FilesBinding files = FilesBinding.instance;
     if (!files.photosFile.existsSync()) {
       // We haven't yet finished loading the set of photo IDs from which to
       // choose the next batch of media items; nothing to queue.
@@ -69,6 +74,9 @@ class _GooglePhotosPhotoProducer extends PhotoProducer {
       return true;
     }());
     queue.insertAll(0, items);
+
+    completer.complete();
+    _queueCompleter = null;
   }
 
   @override
