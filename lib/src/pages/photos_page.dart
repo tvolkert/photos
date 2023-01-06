@@ -14,7 +14,7 @@ import '../model/photo.dart';
 import '../model/photo_producer.dart';
 import '../model/photos_library_api_model.dart';
 
-const _debugExtraInfo = false;
+const _forceShowDebugInfo = false;
 const _rotationInterval = Duration(seconds: 60);
 
 const double perspectiveAngleRadians = 0.4315;
@@ -73,8 +73,7 @@ class ContentProducer extends StatefulWidget {
   State<ContentProducer> createState() => ContentProducerState();
 
   static ContentProducerState of(BuildContext context) {
-    _ContentProducerScope scope =
-        context.dependOnInheritedWidgetOfExactType<_ContentProducerScope>()!;
+    _ContentProducerScope scope = context.dependOnInheritedWidgetOfExactType<_ContentProducerScope>()!;
     return scope.state;
   }
 }
@@ -111,8 +110,7 @@ class ContentProducerState extends State<ContentProducer> {
               return Container();
             } else {
               assert(snapshot.hasData);
-              final Photo photo = snapshot.data!;
-              return Image(image: photo.image);
+              return _PhotoDisplay(photo: snapshot.data!);
             }
           case ConnectionState.active:
             // This state is unused in `FutureBuilder`.
@@ -122,6 +120,17 @@ class ContentProducerState extends State<ContentProducer> {
         return Container();
       },
     );
+  }
+}
+
+class _PhotoDisplay extends StatelessWidget {
+  const _PhotoDisplay({super.key, required this.photo});
+
+  final Photo photo;
+
+  @override
+  Widget build(BuildContext context) {
+    return Image(image: photo.image);
   }
 }
 
@@ -259,41 +268,126 @@ class AppContainer extends StatefulWidget {
 }
 
 class AppContainerState extends State<AppContainer> {
-  bool _forcePerformanceOverlay = false;
+  bool _showDebugInfo = false;
 
-  void togglePerformanceOverlay() {
+  bool get showDebugInfo {
+    bool showDebugInfo = _showDebugInfo;
+    assert(() {
+      showDebugInfo |= _forceShowDebugInfo;
+      return true;
+    }());
+    return showDebugInfo;
+  }
+
+  void toggleShowDebugInfo() {
     setState(() {
-      _forcePerformanceOverlay = !_forcePerformanceOverlay;
+      _showDebugInfo = !_showDebugInfo;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    Widget child = widget.child;
-    if (!ContentProducer.of(context).isInteractive) {
-      child = WakeUpOnKeyPress(
-        child: child,
-      );
-    }
-    bool showPerformanceOverlay = _forcePerformanceOverlay;
-    assert(() {
-      showPerformanceOverlay |= _debugExtraInfo;
-      return true;
-    }());
+    Widget child = WakeUpOnKeyPress(
+      child: widget.child,
+    );
     return _AppContainerScope(
       state: this,
       child: MediaQuery.fromWindow(
-        child: ClipRect(
-          child: Stack(
-            fit: StackFit.passthrough,
-            children: <Widget>[
-              child,
-              if (showPerformanceOverlay)
-                Positioned(top: 0, left: 0, right: 0, child: PerformanceOverlay.allEnabled()),
-            ],
+        child: DefaultTextStyle(
+          style: const TextStyle(
+            color: Color(0xffffffff),
+            fontSize: 10,
+          ),
+          child: ClipRect(
+            child: Stack(
+              fit: StackFit.passthrough,
+              children: <Widget>[
+                child,
+                if (showDebugInfo) const _DebugInfo(),
+              ],
+            ),
           ),
         ),
       ),
+    );
+  }
+}
+
+class _DebugInfo extends StatefulWidget {
+  const _DebugInfo({super.key});
+
+  @override
+  State<_DebugInfo> createState() => _DebugInfoState();
+}
+
+class _DebugInfoState extends State<_DebugInfo> {
+  Map<String, dynamic>? _deviceInfo;
+  late Timer _deviceInfoRefreshTimer;
+
+  static const Duration _deviceInfoRefreshRate = Duration(seconds: 3);
+
+  void _reloadDeviceInfo() async {
+    Map<String, dynamic> info = await DreamBinding.instance.getDeviceInfo();
+    if (mounted) {
+      setState(() {
+        _deviceInfo = info;
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _deviceInfoRefreshTimer = Timer.periodic(_deviceInfoRefreshRate, (Timer timer) {
+      _reloadDeviceInfo();
+    });
+    _reloadDeviceInfo();
+  }
+
+  @override
+  void dispose() {
+    _deviceInfoRefreshTimer.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final MediaQueryData mediaQueryData = MediaQuery.of(context);
+    return Stack(
+      fit: StackFit.passthrough,
+      children: [
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: PerformanceOverlay.allEnabled(
+            checkerboardOffscreenLayers: true,
+            checkerboardRasterCacheImages: true,
+            rasterizerThreshold: 1,
+          ),
+        ),
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Screen size: ${mediaQueryData.size.width} x ${mediaQueryData.size.height}'),
+              Text('Device pixel ratio: ${mediaQueryData.devicePixelRatio}'),
+              Text('Max heap size (MB): ${_deviceInfo?['maxHeapSizeMB']}'),
+              Text('Available heap size (MB): ${_deviceInfo?['availHeapSizeMB']}'),
+              Text('Total system RAM (MB): ${_deviceInfo?['totalSystemRamMB']}'),
+              Text('Available system RAM (MB): ${_deviceInfo?['availableSystemRamMB']}'),
+              Text('GLES version (`ConfigurationInfo.getGlEsVersion()`): ${_deviceInfo?['gpuGlesVersion']}'),
+              Text('GL vendor: ${_deviceInfo?['glVendor']}'),
+              Text('GL renderer: ${_deviceInfo?['glRenderer']}'),
+              Text('GL version (`GL10.glGetString(GL10.GL_VERSION)`): ${_deviceInfo?['glVersion']}'),
+              Text('glExtensions: ${_deviceInfo?['glExtensions']}'),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -307,7 +401,9 @@ class _AppContainerScope extends InheritedWidget {
   final AppContainerState state;
 
   @override
-  bool updateShouldNotify(_AppContainerScope old) => false;
+  bool updateShouldNotify(_AppContainerScope old) {
+    return state.showDebugInfo != old.state.showDebugInfo;
+  }
 }
 
 class WakeUpOnKeyPress extends StatefulWidget {
@@ -325,7 +421,7 @@ class _WakeUpOnKeyPressState extends State<WakeUpOnKeyPress> {
   void _handleKeyEvent(KeyEvent event) async {
     if (event is KeyDownEvent) {
       if (event.logicalKey == LogicalKeyboardKey.digit0) {
-        AppContainer.of(context).togglePerformanceOverlay();
+        AppContainer.of(context).toggleShowDebugInfo();
       } else {
         DreamBinding.instance.wakeUp();
       }
@@ -431,28 +527,20 @@ class _MontageControllerState extends State<MontageController> {
       _locations[builder.key] = location;
 
       Widget child = content!;
-      assert(() {
-        if (_debugExtraInfo) {
-          child = Stack(
-            fit: StackFit.passthrough,
-            textDirection: TextDirection.ltr,
-            children: [
-              child,
-              ColoredBox(color: builder.layer.color),
-              Text(
-                builder.key.toString(),
-                textDirection: TextDirection.ltr,
-                style: const TextStyle(
-                  fontSize: 30,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xffcc0000),
-                ),
-              ),
-            ],
-          );
-        }
-        return true;
-      }());
+      if (AppContainer.of(context).showDebugInfo) {
+        child = Stack(
+          fit: StackFit.passthrough,
+          textDirection: TextDirection.ltr,
+          children: [
+            child,
+            ColoredBox(color: builder.layer.color),
+            Text(
+              builder.key.toString(),
+              textDirection: TextDirection.ltr,
+            ),
+          ],
+        );
+      }
 
       MontageCard card = MontageCard(
         key: builder.key,
@@ -542,8 +630,7 @@ class _MontageSpinnerState extends State<MontageSpinner> with SingleTickerProvid
     distance = TweenSequence<double>(
       <TweenSequenceItem<double>>[
         TweenSequenceItem<double>(
-          tween: Tween<double>(begin: 0, end: _maxDistance)
-              .chain(CurveTween(curve: Curves.easeInOutSine)),
+          tween: Tween<double>(begin: 0, end: _maxDistance).chain(CurveTween(curve: Curves.easeInOutSine)),
           weight: 48,
         ),
         TweenSequenceItem<double>(
@@ -551,8 +638,7 @@ class _MontageSpinnerState extends State<MontageSpinner> with SingleTickerProvid
           weight: 4,
         ),
         TweenSequenceItem<double>(
-          tween: Tween<double>(begin: _maxDistance, end: 0)
-              .chain(CurveTween(curve: Curves.easeInOutSine)),
+          tween: Tween<double>(begin: _maxDistance, end: 0).chain(CurveTween(curve: Curves.easeInOutSine)),
           weight: 48,
         ),
       ],
@@ -686,7 +772,7 @@ class RenderMontage extends RenderBox
   void paintForwards(PaintingContext context, Offset offset) {
     RenderBox? child = firstChild;
     assert(() {
-      if (_debugExtraInfo) {
+      if (_forceShowDebugInfo) {
         Paint paint = Paint()..color = const Color(0xffffffff);
         context.canvas.drawLine(
           Offset(size.width / 2, 0),
@@ -708,7 +794,7 @@ class RenderMontage extends RenderBox
     final double distanceDx = math.tan(perspectiveAngleRadians) * distance;
     final double centerDx = size.width / 2;
     assert(() {
-      if (_debugExtraInfo) {
+      if (_forceShowDebugInfo) {
         Paint paint = Paint()..color = const Color(0xffcc0000);
         context.canvas.drawLine(
           Offset(centerDx, 0),

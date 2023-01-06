@@ -23,6 +23,19 @@ mixin DreamBinding on AppBindingBase {
     }
   }
 
+  Future<Map<String, dynamic>> getDeviceInfo() async {
+    try {
+      Map<String, dynamic>? result =
+          await _channel.invokeMapMethod<String, dynamic>('getDeviceInfo');
+      return result!;
+    } on PlatformException catch (error, stack) {
+      debugPrint('failed to get device info: $error\n$stack');
+      return const <String, dynamic>{};
+    } on MissingPluginException {
+      return const <String, dynamic>{};
+    }
+  }
+
   @override
   @protected
   @mustCallSuper

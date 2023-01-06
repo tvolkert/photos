@@ -92,6 +92,8 @@ class _GooglePhotosPhotoProducer extends PhotoProducer {
     } else {
       final MediaItem mediaItem = queue.removeLast();
       final Size photoSize = applyBoxFit(BoxFit.scaleDown, mediaItem.size!, sizeConstraints).destination;
+      print(
+          '~!@ : given constraints of $sizeConstraints applied to ${mediaItem.size}, we got $photoSize. Divided by DPR = ${photoSize / WidgetsBinding.instance.window.devicePixelRatio}');
       return Photo(
         id: mediaItem.id,
         mediaItem: mediaItem,
@@ -143,8 +145,7 @@ class _StaticPhotoProducer extends PhotoProducer {
     const Size staticSize = Size(429, 429);
     final MediaItem staticMediaItem = MediaItem(
       id: 'profile_photo',
-      baseUrl:
-          'https://lh3.googleusercontent.com/ogw/ADea4I4W_CNuQmCCPTLweMp6ndpZmVOgwL7GCClptOUZG6M',
+      baseUrl: 'https://lh3.googleusercontent.com/ogw/ADea4I4W_CNuQmCCPTLweMp6ndpZmVOgwL7GCClptOUZG6M',
       mediaMetadata: MediaMetadata(
         width: '${staticSize.width}',
         height: '${staticSize.height}',

@@ -23,6 +23,7 @@ public class MainService extends DreamService {
 
     private FlutterEngine flutterEngine;
     private FlutterView flutterView;
+    private PhotosChannel photosChannel;
 
     @Override
     public void onCreate() {
@@ -32,7 +33,8 @@ public class MainService extends DreamService {
         loader.ensureInitializationComplete(getApplicationContext(), new String[] {});
         flutterEngine = new FlutterEngine(this);
         GeneratedPluginRegister.registerGeneratedPlugins(flutterEngine);
-        PhotosChannel.register(flutterEngine, getApplicationContext(), this);
+        photosChannel = new PhotosChannel(flutterEngine, getApplicationContext(), this);
+        photosChannel.register();
     }
 
     @Override
@@ -44,6 +46,7 @@ public class MainService extends DreamService {
         flutterView = new FlutterView(this);
         flutterView.setLayoutParams(matchParent);
         flutterView.attachToFlutterEngine(flutterEngine);
+        photosChannel.setFlutterView(flutterView);
         setContentView(flutterView);
         flutterEngine.getLifecycleChannel().appIsInactive();
     }
