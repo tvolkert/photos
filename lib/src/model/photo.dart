@@ -11,6 +11,7 @@ class Photo {
     this.mediaItem,
     required this.size,
     required this.scale,
+    required this.boundingConstraints,
     required this.image,
   });
 
@@ -48,9 +49,22 @@ class Photo {
   ///  * [ImageInfo.scale]
   final double scale;
 
+  /// The bounding size that was used to load this photo.
+  ///
+  /// The photo's [size] is guaranteed to be less than or equal to these
+  /// constraints in both width and height.
+  final Size boundingConstraints;
+
   /// Identifies the image that backs this photo, without committing to the
   /// precise final asset.
   final ImageProvider<Object> image;
+
+  /// Disposes of any resources that are held by this object.
+  ///
+  /// This must be called when the object is no longer needed and subject to
+  /// garbage collection.
+  @mustCallSuper
+  void dispose() {}
 
   @override
   int get hashCode => Object.hash(id, size);

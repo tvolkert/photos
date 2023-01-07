@@ -26,8 +26,4 @@ Future<void> run({required bool interactive}) async {
       ),
     ),
   );
-
-  // Limit the size of the image cache to ~the number of images that can be on-screen at a time.
-  // TODO: lower this value
-  imageCache.maximumSize = 100;
 }

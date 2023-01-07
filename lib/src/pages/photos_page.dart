@@ -94,33 +94,7 @@ class ContentProducerState extends State<ContentProducer> {
   /// stop the app with simple keypad interaction.
   bool get isInteractive => widget.interactive;
 
-  Widget produce(Size sizeConstraints) {
-    return FutureBuilder<Photo>(
-      future: widget.producer.produce(sizeConstraints),
-      builder: (BuildContext context, AsyncSnapshot<Photo> snapshot) {
-        switch (snapshot.connectionState) {
-          case ConnectionState.none:
-          // Fallthrough
-          case ConnectionState.waiting:
-            // TODO: Return something with UI
-            return Container();
-          case ConnectionState.done:
-            if (snapshot.hasError) {
-              // TODO: Return something with UI
-              return Container();
-            } else {
-              assert(snapshot.hasData);
-              return _PhotoDisplay(photo: snapshot.data!);
-            }
-          case ConnectionState.active:
-            // This state is unused in `FutureBuilder`.
-            assert(false);
-            break;
-        }
-        return Container();
-      },
-    );
-  }
+  Future<Photo> produce(Size sizeConstraints) => widget.producer.produce(sizeConstraints);
 }
 
 class _PhotoDisplay extends StatelessWidget {
@@ -282,29 +256,36 @@ class AppContainerState extends State<AppContainer> {
   void toggleShowDebugInfo() {
     setState(() {
       _showDebugInfo = !_showDebugInfo;
+      assert(() {
+        debugInvertOversizedImages = !debugInvertOversizedImages;
+        return true;
+      }());
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    Widget child = WakeUpOnKeyPress(
+    Widget child = KeyPressHandler(
       child: widget.child,
     );
     return _AppContainerScope(
       state: this,
       child: MediaQuery.fromWindow(
-        child: DefaultTextStyle(
-          style: const TextStyle(
-            color: Color(0xffffffff),
-            fontSize: 10,
-          ),
-          child: ClipRect(
-            child: Stack(
-              fit: StackFit.passthrough,
-              children: <Widget>[
-                child,
-                if (showDebugInfo) const _DebugInfo(),
-              ],
+        child: Directionality(
+          textDirection: TextDirection.ltr,
+          child: DefaultTextStyle(
+            style: const TextStyle(
+              color: Color(0xffffffff),
+              fontSize: 10,
+            ),
+            child: ClipRect(
+              child: Stack(
+                fit: StackFit.passthrough,
+                children: <Widget>[
+                  child,
+                  if (showDebugInfo) const _DebugInfo(),
+                ],
+              ),
             ),
           ),
         ),
@@ -383,7 +364,8 @@ class _DebugInfoState extends State<_DebugInfo> {
               Text('GL vendor: ${_deviceInfo?['glVendor']}'),
               Text('GL renderer: ${_deviceInfo?['glRenderer']}'),
               Text('GL version (`GL10.glGetString(GL10.GL_VERSION)`): ${_deviceInfo?['glVersion']}'),
-              Text('glExtensions: ${_deviceInfo?['glExtensions']}'),
+              Text('Image cache size (count): ${imageCache.currentSize}'),
+              Text('Image cache size (MB): ${imageCache.currentSizeBytes / (1024 * 1024)}'),
             ],
           ),
         ),
@@ -406,16 +388,16 @@ class _AppContainerScope extends InheritedWidget {
   }
 }
 
-class WakeUpOnKeyPress extends StatefulWidget {
-  const WakeUpOnKeyPress({super.key, required this.child});
+class KeyPressHandler extends StatefulWidget {
+  const KeyPressHandler({super.key, required this.child});
 
   final Widget child;
 
   @override
-  State<WakeUpOnKeyPress> createState() => _WakeUpOnKeyPressState();
+  State<KeyPressHandler> createState() => _KeyPressHandlerState();
 }
 
-class _WakeUpOnKeyPressState extends State<WakeUpOnKeyPress> {
+class _KeyPressHandlerState extends State<KeyPressHandler> {
   late FocusNode focusNode;
 
   void _handleKeyEvent(KeyEvent event) async {
@@ -435,22 +417,6 @@ class _WakeUpOnKeyPressState extends State<WakeUpOnKeyPress> {
     SchedulerBinding.instance.addPostFrameCallback((Duration timeStamp) {
       focusNode.requestFocus();
     });
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    assert(() {
-      if (ContentProducer.of(context).isInteractive) {
-        throw FlutterError.fromParts(<DiagnosticsNode>[
-          ErrorSummary('WakeUpOnKeyPress widget was used in interactive mode.'),
-          ErrorDescription('The purpose of WakeUpOnKeyPress is to call '
-              'wakeUp(), a method that only makes sense when in '
-              'non-interactive (screensaver) mode.'),
-        ]);
-      }
-      return true;
-    }());
   }
 
   @override
@@ -480,7 +446,7 @@ class MontageController extends StatefulWidget {
 
 class _MontageControllerState extends State<MontageController> {
   final Map<CardKey, Offset> _locations = <CardKey, Offset>{};
-  final Map<CardKey, Widget> _content = <CardKey, Widget>{};
+  final Map<CardKey, Future<Photo>> _futures = <CardKey, Future<Photo>>{};
   late int _scheduledFrameCallbackId;
   int _currentFrame = 0;
 
@@ -500,6 +466,13 @@ class _MontageControllerState extends State<MontageController> {
   void initState() {
     super.initState();
     _scheduleFrame();
+    imageCache.maximumSize = widget.builders.length;
+  }
+
+  @override
+  void didUpdateWidget(covariant MontageController oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    imageCache.maximumSize = widget.builders.length;
   }
 
   @override
@@ -514,47 +487,234 @@ class _MontageControllerState extends State<MontageController> {
   }
 
   Widget buildWithConstraints(BuildContext context, BoxConstraints constraints) {
-    final List<MontageCard> children = <MontageCard>[];
+    final List<Widget> children = <Widget>[];
     // TODO: some of the work being done here should be done in `onFrame()`
     for (MontageCardBuilder builder in widget.builders) {
       Offset location = builder.calculateLocation(_currentFrame, constraints.biggest);
       Offset? lastLocation = _locations[builder.key];
-      Widget? content = _content[builder.key];
-      assert(content == null || lastLocation != null);
+      Future<Photo>? future = _futures[builder.key];
+      assert(future == null || lastLocation != null);
       if (lastLocation == null || lastLocation.dy < location.dy) {
-        _content[builder.key] = content = ContentProducer.of(context).produce(const Size(500, 500));
+        // Load a new photo
+        const Size bounds = Size(500, 500);
+        _futures[builder.key] = future = ContentProducer.of(context).produce(bounds);
       }
       _locations[builder.key] = location;
 
-      Widget child = content!;
-      if (AppContainer.of(context).showDebugInfo) {
-        child = Stack(
-          fit: StackFit.passthrough,
-          textDirection: TextDirection.ltr,
-          children: [
-            child,
-            ColoredBox(color: builder.layer.color),
-            Text(
-              builder.key.toString(),
-              textDirection: TextDirection.ltr,
-            ),
-          ],
-        );
-      }
-
-      MontageCard card = MontageCard(
-        key: builder.key,
-        x: location.dx,
-        y: location.dy,
-        z: builder.layer.zIndex,
-        scale: builder.layer.scale,
-        child: child,
-      );
-      children.add(card);
+      children.add(PhotoContainer(
+        builder: builder,
+        location: location,
+        future: future!,
+        debugImageLabel: builder.key.value.toString(),
+      ));
     }
     return MontageSpinner(
       key: widget.key,
       children: children,
+    );
+  }
+}
+
+class PhotoContainer extends StatefulWidget {
+  const PhotoContainer({
+    super.key,
+    required this.builder,
+    required this.location,
+    required this.future,
+    this.debugImageLabel,
+  });
+
+  final MontageCardBuilder builder;
+  final Offset location;
+  final Future<Photo> future;
+  final String? debugImageLabel;
+
+  @override
+  State<PhotoContainer> createState() => _PhotoContainerState();
+}
+
+class _PhotoContainerState extends State<PhotoContainer> {
+  /// An object that identifies the currently active callbacks. Used to avoid
+  /// calling setState from stale callbacks, e.g. after disposal of this state,
+  /// or after widget reconfiguration to a new Future.
+  Object? _activeCallbackIdentity;
+  ImageStream? _imageStream;
+  Photo? _currentPhoto;
+  ImageInfo? _imageInfo;
+
+  late final ImageStreamListener _imageStreamListener;
+
+  void _subscribeFuture() {
+    final Object callbackIdentity = Object();
+    _activeCallbackIdentity = callbackIdentity;
+    widget.future.then<void>((Photo photo) {
+      if (callbackIdentity == _activeCallbackIdentity) {
+        _disposePhoto();
+        _currentPhoto = photo;
+        _unsubscribeFuture();
+        _subscribeImageStream();
+      }
+    }, onError: _handleError);
+  }
+
+  void _unsubscribeFuture() {
+    _activeCallbackIdentity = null;
+  }
+
+  void _subscribeImageStream() {
+    assert(_currentPhoto != null);
+    final ImageConfiguration config = createLocalImageConfiguration(context);
+    _imageStream = _currentPhoto!.image.resolve(config);
+    _imageStream!.addListener(_imageStreamListener);
+  }
+
+  void _unsubscribeImageStream() {
+    if (_imageStream != null) {
+      _imageStream!.removeListener(_imageStreamListener);
+      _imageStream = null;
+    }
+  }
+
+  void _handleImage(ImageInfo image, bool synchronousCall) {
+    assert(() {
+      debugPrint('~!@ : for photo ${widget.builder.key.value}, '
+          'given constraints of ${_currentPhoto!.boundingConstraints}} '
+          'applied to media item size ${_currentPhoto!.mediaItem?.size}, '
+          'we got ${_currentPhoto!.size} '
+          'with scale of ${_currentPhoto!.scale}');
+      return true;
+    }());
+    // If we wanted to NOT show animated GIFs, we'd call `_unsubscribeImageStream()`
+    // here. By keeping the subscription here, we'll be notified of multi-frame
+    // images, thus animating them.
+    setState(() {
+      _disposeImageInfo();
+      _imageInfo = image;
+    });
+  }
+
+  void _handleError(Object error, StackTrace? stack) {
+    debugPrint('Error while loading image: $error\n$stack');
+  }
+
+  void _disposeImageInfo() {
+    if (_imageInfo != null) {
+      _imageInfo!.dispose();
+      _imageInfo = null;
+    }
+  }
+
+  void _disposePhoto() {
+    if (_currentPhoto != null) {
+      _currentPhoto!.dispose();
+      _currentPhoto = null;
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _imageStreamListener = ImageStreamListener(_handleImage, onError: _handleError);
+    _subscribeFuture();
+  }
+
+  @override
+  void didUpdateWidget(covariant PhotoContainer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.future != oldWidget.future) {
+      _unsubscribeImageStream();
+      _unsubscribeFuture();
+      _subscribeFuture();
+    }
+  }
+
+  @override
+  void dispose() {
+    _unsubscribeImageStream();
+    _unsubscribeFuture();
+    _disposeImageInfo();
+    _disposePhoto();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    List<Widget> children = <Widget>[];
+    if (_imageInfo == null) {
+      children.add(Container());
+    } else {
+      children.add(RawImage(
+        image: _imageInfo!.image,
+        scale: _imageInfo!.scale,
+        debugImageLabel: widget.debugImageLabel,
+      ));
+    }
+    // List<Widget> children = <Widget>[
+    //   FutureBuilder<Photo>(
+    //     future: widget.future,
+    //     builder: (BuildContext context, AsyncSnapshot<Photo> snapshot) {
+    //       switch (snapshot.connectionState) {
+    //         case ConnectionState.none:
+    //         // Fallthrough
+    //         case ConnectionState.waiting:
+    //           // TODO: Return something with UI
+    //           return Container();
+    //         case ConnectionState.done:
+    //           if (snapshot.hasError) {
+    //             // TODO: Return something with UI
+    //             return Container();
+    //           } else {
+    //             assert(snapshot.hasData);
+    //             return _PhotoDisplay(photo: snapshot.data!);
+    //           }
+    //         case ConnectionState.active:
+    //           // This state is unused in `FutureBuilder`.
+    //           assert(false);
+    //           break;
+    //       }
+    //       return Container();
+    //     },
+    //   ),
+    // ];
+    if (AppContainer.of(context).showDebugInfo) {
+      children.addAll(<Widget>[
+        ColoredBox(color: widget.builder.layer.color),
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: Text(
+            widget.builder.key.value.toString(),
+            style: DefaultTextStyle.of(context).style.copyWith(fontSize: 16),
+          ),
+        ),
+        if (_imageInfo != null)
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text('Size: ${_imageInfo!.image.width} x ${_imageInfo!.image.height}'),
+                Text('Scale: ${_imageInfo!.scale}'),
+                Text('File size (KB): ${_imageInfo!.sizeBytes ~/ 1024}'),
+              ],
+            ),
+          ),
+      ]);
+    }
+
+    return MontageCard(
+      key: widget.builder.key,
+      x: widget.location.dx,
+      y: widget.location.dy,
+      z: widget.builder.layer.zIndex,
+      scale: widget.builder.layer.scale,
+      child: Stack(
+        fit: StackFit.passthrough,
+        children: children,
+      ),
     );
   }
 }
@@ -598,10 +758,10 @@ class MontageCardBuilder {
 class MontageSpinner extends StatefulWidget {
   const MontageSpinner({
     super.key,
-    this.children = const <MontageCard>[],
+    this.children = const <Widget>[],
   });
 
-  final List<MontageCard> children;
+  final List<Widget> children;
 
   @override
   State<MontageSpinner> createState() => _MontageSpinnerState();
@@ -680,7 +840,7 @@ class Montage extends MultiChildRenderObjectWidget {
     super.key,
     this.rotation = 0,
     this.distance = 0,
-    List<MontageCard> super.children = const <MontageCard>[],
+    super.children,
   });
 
   final double rotation;

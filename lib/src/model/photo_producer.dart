@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 
 import 'package:flutter/widgets.dart';
 
@@ -51,12 +52,28 @@ class _GooglePhotosPhotoProducer extends PhotoProducer {
   /// This method depends on the entire set of photo IDs having already been
   /// loaded so that we can choose random photos from the main set. See
   /// [PhotosLibraryApiModel.populateDatabase] for more info.
-  Future<void> _queueItems() async {
+  ///
+  /// If this method is called, and then it is called again while the first
+  /// call's future is still pending, then the existing future will be reused
+  /// and returned.
+  Future<void> _queueItems() {
     if (_queueCompleter != null) {
-      return await _queueCompleter!.future;
+      return _queueCompleter!.future;
     }
-    final Completer<void> completer = _queueCompleter = Completer<void>();
+    _queueCompleter = Completer<void>();
+    final Future<void> result = _doQueueItems();
+    _queueCompleter!.complete(result);
+    _queueCompleter = null;
+    return result;
+  }
 
+  /// Method that does the actual work of queueing media items.
+  ///
+  /// Assuming the database files have been created, this method will always
+  /// make a request to the Google Photos API, even if other requests are still
+  /// pending. To ensure that we reuse existing pending requests, use
+  /// [_queueItems] instead.
+  Future<void> _doQueueItems() async {
     final FilesBinding files = FilesBinding.instance;
     if (!files.photosFile.existsSync()) {
       // We haven't yet finished loading the set of photo IDs from which to
@@ -74,9 +91,6 @@ class _GooglePhotosPhotoProducer extends PhotoProducer {
       return true;
     }());
     queue.insertAll(0, items);
-
-    completer.complete();
-    _queueCompleter = null;
   }
 
   @override
@@ -92,16 +106,68 @@ class _GooglePhotosPhotoProducer extends PhotoProducer {
     } else {
       final MediaItem mediaItem = queue.removeLast();
       final Size photoSize = applyBoxFit(BoxFit.scaleDown, mediaItem.size!, sizeConstraints).destination;
-      print(
-          '~!@ : given constraints of $sizeConstraints applied to ${mediaItem.size}, we got $photoSize. Divided by DPR = ${photoSize / WidgetsBinding.instance.window.devicePixelRatio}');
       return Photo(
         id: mediaItem.id,
         mediaItem: mediaItem,
         size: photoSize / WidgetsBinding.instance.window.devicePixelRatio,
         scale: WidgetsBinding.instance.window.devicePixelRatio,
+        boundingConstraints: sizeConstraints,
         image: NetworkImage(mediaItem.getSizedUrl(photoSize)),
       );
     }
+  }
+}
+
+class ImmediateImageStreamCompleter extends ImageStreamCompleter {
+  ImmediateImageStreamCompleter(ImageInfo image) {
+    setImage(image);
+  }
+}
+
+class PreloadedAssetImageProvider extends ImageProvider<String> {
+  PreloadedAssetImageProvider(this.assetName, this.image)
+      : completer = ImmediateImageStreamCompleter(ImageInfo(image: image));
+
+  final String assetName;
+  final ui.Image image;
+  final ImageStreamCompleter completer;
+
+  @override
+  Future<String> obtainKey(ImageConfiguration configuration) {
+    return Future<String>.value(assetName);
+  }
+
+  @override
+  void resolveStreamForKey(
+    ImageConfiguration configuration,
+    ImageStream stream,
+    String key,
+    ImageErrorListener handleError,
+  ) {
+    stream.setCompleter(completer);
+  }
+
+  @override
+  ImageStreamCompleter loadBuffer(String key, DecoderBufferCallback decode) => completer;
+}
+
+class ImageBackedPhoto extends Photo {
+  const ImageBackedPhoto({
+    required super.id,
+    super.mediaItem,
+    required super.size,
+    required super.scale,
+    required super.boundingConstraints,
+    required super.image,
+    required this.backingImage,
+  });
+
+  final ui.Image backingImage;
+
+  @override
+  void dispose() {
+    backingImage.dispose();
+    super.dispose();
   }
 }
 
@@ -127,13 +193,85 @@ class _AssetPhotoProducer extends PhotoProducer {
 
   @override
   Future<Photo> produce(Size sizeConstraints) async {
+    // final String assetName = _assets[_nextAssetIndex];
+    // final ui.ImmutableBuffer buffer = await ui.ImmutableBuffer.fromAsset(assetName);
+    // final ui.Codec codec = await ui.instantiateImageCodecFromBuffer(buffer);
+    // try {
+    //   final ui.FrameInfo frame = await codec.getNextFrame();
+    //   final ui.Image rawImage = frame.image;
+    //   final PreloadedAssetImageProvider rawProvider = PreloadedAssetImageProvider(assetName, rawImage);
+    //   final Size rawSize = Size(rawImage.width.toDouble(), rawImage.height.toDouble());
+    //   final Size size = applyBoxFit(BoxFit.scaleDown, rawSize, sizeConstraints).destination;
+    //   return ImageBackedPhoto(
+    //     id: assetName,
+    //     size: sizeConstraints,
+    //     scale: WidgetsBinding.instance.window.devicePixelRatio,
+    //     boundingConstraints: sizeConstraints,
+    //     backingImage: rawImage,
+    //     image: ResizeImage(
+    //       rawProvider,
+    //       width: size.width.toInt(),
+    //       height: size.height.toInt(),
+    //     ),
+    //   );
+    // } finally {
+    //   codec.dispose();
+    // }
+
+    // This block of code allows us to know the raw image size, and thus to
+    // know what aspect ratio to maintain when we scale down the size. The
+    // problem with this as written is that it causes the raw (large) photos to
+    // populate [imageCache], which crowds out the smaller (resized) images.
+    // However, if we replace the `AssetImage` constructor with a
+    // `NonCachingAssetImage` (defined below), then the process OOMs. Similarly,
+    // if we use the commented-out code block above instead of this code block,
+    // the process OOMs...
+    //
+    // Note that if we don't worry about maintaining the aspect ratio of the
+    // photo, and we instead tell the `ResizeImage` to use the width and height
+    // that are pulled straight from `sizeConstraints`, then the raw images
+    // correctly remain out of the image cache... but then the aspect ratio of
+    // the photos aren't maintained when they're resized.
     final String assetName = _assets[_nextAssetIndex];
+    Completer<ui.Image> completer = Completer<ui.Image>();
+    final AssetImage asset = AssetImage(assetName);
+    asset.resolve(const ImageConfiguration()).addListener(
+      ImageStreamListener((ImageInfo image, bool synchronousCall) {
+        completer.complete(image.image);
+      }),
+    );
+    final ui.Image rawImage = await completer.future;
+    final Size rawSize = Size(rawImage.width.toDouble(), rawImage.height.toDouble());
+    final Size size = applyBoxFit(BoxFit.scaleDown, rawSize, sizeConstraints).destination;
     return Photo(
       id: assetName,
       size: sizeConstraints,
       scale: WidgetsBinding.instance.window.devicePixelRatio,
-      image: AssetImage(assetName),
+      boundingConstraints: sizeConstraints,
+      image: ResizeImage(
+        asset,
+        width: size.width.toInt(),
+        height: size.height.toInt(),
+      ),
     );
+  }
+}
+
+class NonCachingAssetImage extends AssetImage {
+  const NonCachingAssetImage(super.assetName);
+
+  @protected
+  @override
+  void resolveStreamForKey(
+    ImageConfiguration configuration,
+    ImageStream stream,
+    AssetBundleImageKey key,
+    ImageErrorListener handleError,
+  ) {
+    if (stream.completer != null) {
+      return;
+    }
+    stream.setCompleter(loadBuffer(key, PaintingBinding.instance.instantiateImageCodecFromBuffer));
   }
 }
 
@@ -156,6 +294,7 @@ class _StaticPhotoProducer extends PhotoProducer {
       mediaItem: staticMediaItem,
       size: staticSize,
       scale: WidgetsBinding.instance.window.devicePixelRatio,
+      boundingConstraints: sizeConstraints,
       image: NetworkImage(staticMediaItem.getSizedUrl(staticSize)),
     );
   }
