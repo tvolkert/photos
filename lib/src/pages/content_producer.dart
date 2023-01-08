@@ -34,7 +34,7 @@ abstract class ContentProducerController {
   /// See also:
   ///
   ///  * [PhotoProducer], which does the actual work of producing the photo.
-  Future<Photo> producePhoto(Size sizeConstraints);
+  Future<Photo> producePhoto({required Size sizeConstraints, required double scaleMultiplier});
 }
 
 class _ContentProducerState extends State<ContentProducer> implements ContentProducerController {
@@ -47,7 +47,12 @@ class _ContentProducerState extends State<ContentProducer> implements ContentPro
   }
 
   @override
-  Future<Photo> producePhoto(Size sizeConstraints) => widget.producer.produce(sizeConstraints);
+  Future<Photo> producePhoto({required Size sizeConstraints, required double scaleMultiplier}) {
+    return widget.producer.produce(
+      sizeConstraints: sizeConstraints,
+      scaleMultiplier: scaleMultiplier,
+    );
+  }
 }
 
 class _ContentProducerScope extends InheritedWidget {

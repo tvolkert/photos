@@ -4,7 +4,7 @@ import 'package:flutter/widgets.dart';
 
 import '../model/dream.dart';
 
-import 'app_container.dart';
+import 'app.dart';
 
 class KeyPressHandler extends StatefulWidget {
   const KeyPressHandler({super.key, required this.child});

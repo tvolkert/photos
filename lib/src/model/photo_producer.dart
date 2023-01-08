@@ -29,7 +29,7 @@ abstract class PhotoProducer {
   const PhotoProducer._();
 
   /// Produces a [Photo] that fits within the specified size constraints.
-  Future<Photo> produce(Size sizeConstraints);
+  Future<Photo> produce({required Size sizeConstraints, required double scaleMultiplier});
 }
 
 class _GooglePhotosPhotoProducer extends PhotoProducer {
@@ -94,7 +94,7 @@ class _GooglePhotosPhotoProducer extends PhotoProducer {
   }
 
   @override
-  Future<Photo> produce(Size sizeConstraints) async {
+  Future<Photo> produce({required Size sizeConstraints, required double scaleMultiplier}) async {
     if (queue.isEmpty) {
       // The queue can still be empty after this call, e.g. if the database
       // files haven't been created yet.
@@ -102,17 +102,21 @@ class _GooglePhotosPhotoProducer extends PhotoProducer {
     }
 
     if (queue.isEmpty) {
-      return await const _AssetPhotoProducer().produce(sizeConstraints);
+      return await const _AssetPhotoProducer().produce(
+        sizeConstraints: sizeConstraints,
+        scaleMultiplier: scaleMultiplier,
+      );
     } else {
       final MediaItem mediaItem = queue.removeLast();
       final Size photoSize = applyBoxFit(BoxFit.scaleDown, mediaItem.size!, sizeConstraints).destination;
+      final double scale = WidgetsBinding.instance.window.devicePixelRatio * scaleMultiplier;
       return Photo(
         id: mediaItem.id,
         mediaItem: mediaItem,
         size: photoSize / WidgetsBinding.instance.window.devicePixelRatio,
-        scale: WidgetsBinding.instance.window.devicePixelRatio,
+        scale: scale,
         boundingConstraints: sizeConstraints,
-        image: NetworkImage(mediaItem.getSizedUrl(photoSize)),
+        image: NetworkImage(mediaItem.getSizedUrl(photoSize), scale: scale),
       );
     }
   }
@@ -192,7 +196,7 @@ class _AssetPhotoProducer extends PhotoProducer {
   }
 
   @override
-  Future<Photo> produce(Size sizeConstraints) async {
+  Future<Photo> produce({required Size sizeConstraints, required double scaleMultiplier}) async {
     // final String assetName = _assets[_nextAssetIndex];
     // final ui.ImmutableBuffer buffer = await ui.ImmutableBuffer.fromAsset(assetName);
     // final ui.Codec codec = await ui.instantiateImageCodecFromBuffer(buffer);
@@ -279,7 +283,7 @@ class _StaticPhotoProducer extends PhotoProducer {
   const _StaticPhotoProducer() : super._();
 
   @override
-  Future<Photo> produce(Size sizeConstraints) async {
+  Future<Photo> produce({required Size sizeConstraints, required double scaleMultiplier}) async {
     const Size staticSize = Size(429, 429);
     final MediaItem staticMediaItem = MediaItem(
       id: 'profile_photo',

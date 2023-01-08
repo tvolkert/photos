@@ -22,7 +22,8 @@ const double _perspectiveAngleRadians = 0.4315;
 class MontageLayer {
   const MontageLayer({
     required this.spread,
-    required this.scale,
+    required this.drawingScale,
+    required this.loadingScale,
     required this.zIndex,
     required this.speed,
     required this.debugColor,
@@ -39,7 +40,8 @@ class MontageLayer {
   /// out or more compact. The [spread] value compensates for that appearance.
   final double spread;
 
-  /// The magnification that is applied to all photos in this layer.
+  /// The magnification that is applied to all photos in this layer when they're
+  /// painted.
   ///
   /// This number is a multiplier that is applied to the default scale of
   /// photos. This multiplier is applied in both the x and y axes. A value of 1
@@ -49,7 +51,15 @@ class MontageLayer {
   /// naturally yield the appearance of scaling (as the photos in the front
   /// layer get bigger and the photos in the back layer get smaller). This value
   /// is applied on top of that effect.
-  final double scale;
+  final double drawingScale;
+
+  /// The multiplier that's applied to the requested size of photos in this
+  /// layer when they're being loaded.
+  ///
+  /// Layers whose items are going to be transformed to appear smaller will
+  /// use this scale factor as an optimization to avoid loading image data that
+  /// will end up being lost in the layer's [zIndex] transformation.
+  final double loadingScale;
 
   /// The coordinate on the z-axis at which photos in this layer will exist.
   ///
@@ -83,7 +93,8 @@ class MontageLayer {
   /// naturally appear farther away from the viewer.
   static const back = MontageLayer(
     spread: 1.3,
-    scale: 0.7,
+    drawingScale: 0.8,
+    loadingScale: 0.6,
     zIndex: 500,
     speed: 0.4,
     debugColor: Color(0x33ff0000),
@@ -96,7 +107,8 @@ class MontageLayer {
   /// perspective.
   static const middle = MontageLayer(
     spread: 0.75,
-    scale: 1,
+    drawingScale: 1,
+    loadingScale: 0.8,
     zIndex: 0,
     speed: 0.5,
     debugColor: Color(0x3300ff00),
@@ -108,7 +120,8 @@ class MontageLayer {
   /// will naturally appear closer to the viewer.
   static const front = MontageLayer(
     spread: 0.25,
-    scale: 1,
+    drawingScale: 1,
+    loadingScale: 1,
     zIndex: -500,
     speed: 0.45,
     debugColor: Color(0x330000ff),
@@ -286,8 +299,13 @@ class _MontageControllerState extends State<MontageController> {
       assert(future == null || lastLocation != null);
       if (lastLocation == null || lastLocation.dy < location.dy) {
         // Load a new photo
-        const Size bounds = Size(500, 500);
-        _futures[builder.key] = future = ContentProducer.of(context).producePhoto(bounds);
+        final Size screenSize = MediaQuery.of(context).size;
+        final Size squareScreenSize = Size.square(math.max(screenSize.width, screenSize.height));
+        final Size bounds = squareScreenSize * 0.5;
+        _futures[builder.key] = future = ContentProducer.of(context).producePhoto(
+          sizeConstraints: bounds * builder.layer.loadingScale,
+          scaleMultiplier: builder.layer.loadingScale,
+        );
       }
       _locations[builder.key] = location;
 
@@ -500,7 +518,7 @@ class _PhotoContainerState extends State<PhotoContainer> {
       x: widget.location.dx,
       y: widget.location.dy,
       z: widget.builder.layer.zIndex,
-      scale: widget.builder.layer.scale,
+      scale: widget.builder.layer.drawingScale,
       child: Stack(
         fit: StackFit.passthrough,
         children: children,
