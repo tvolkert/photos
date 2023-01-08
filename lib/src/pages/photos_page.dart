@@ -4,20 +4,20 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:scoped_model/scoped_model.dart';
 
-import '../model/dream.dart';
 import '../model/photo.dart';
 import '../model/photo_producer.dart';
 import '../model/photos_library_api_model.dart';
 
-const _forceShowDebugInfo = false;
-const _rotationInterval = Duration(seconds: 60);
+import 'app.dart';
+import 'content_producer.dart';
+import 'debug.dart';
 
-const double perspectiveAngleRadians = 0.4315;
+const _rotationInterval = Duration(seconds: 60);
+const double _perspectiveAngleRadians = 0.4315;
 
 class MontageLayer {
   const MontageLayer({
@@ -25,101 +25,94 @@ class MontageLayer {
     required this.scale,
     required this.zIndex,
     required this.speed,
-    required this.color,
+    required this.debugColor,
   });
 
+  /// How far apart photos in this layer should be in the x-axis.
+  ///
+  /// This number is a multiplier that is applied to the default spacing
+  /// between photos in the x-axis. A value of 1 means no change to the
+  /// default spacing.
+  ///
+  /// This exists because as [zIndex] changes, the transformations that are
+  /// applied will make the photos appear to naturally be either more spread
+  /// out or more compact. The [spread] value compensates for that appearance.
   final double spread;
-  final double scale;
-  final double zIndex;
-  final double speed;
-  final Color color;
 
+  /// The magnification that is applied to all photos in this layer.
+  ///
+  /// This number is a multiplier that is applied to the default scale of
+  /// photos. This multiplier is applied in both the x and y axes. A value of 1
+  /// means no change to the default scale.
+  ///
+  /// The transformations that are applied as a result of [zIndex] will
+  /// naturally yield the appearance of scaling (as the photos in the front
+  /// layer get bigger and the photos in the back layer get smaller). This value
+  /// is applied on top of that effect.
+  final double scale;
+
+  /// The coordinate on the z-axis at which photos in this layer will exist.
+  ///
+  /// Positive numbers will cause items in this later to appear to fall back
+  /// farther "into the screen" (away from the viewer), whereas negative numbers
+  /// will cause items in this layer to appear to jump "out of the screen"
+  /// (towards the viewer). A value of 0 will cause items in this layer to
+  /// be drawn inline in the screen.
+  final double zIndex;
+
+  /// How quickly photos in this layer should move.
+  ///
+  /// This number is a multiplier on the default speed, so a value of 1 will
+  /// cause items in this layer to move at the normal speed. A negative value
+  /// will cause items in this layer to move down instead of up.
+  final double speed;
+
+  /// A color that allows the viewer to visually distinguish item in one layer
+  /// from item in another.
+  ///
+  /// See also:
+  ///
+  ///  * [PhotosAppController.isShowDebugInfo], which, when true, will cause
+  ///    various debug information to be shown, including items in this layer
+  ///    to have a colored box with this color shown in front of them.
+  final Color debugColor;
+
+  /// The back layer of items.
+  ///
+  /// Items in this layer will be painted behind the other two layers and will
+  /// naturally appear farther away from the viewer.
   static const back = MontageLayer(
     spread: 1.3,
     scale: 0.7,
     zIndex: 500,
     speed: 0.4,
-    color: Color(0x33ff0000),
+    debugColor: Color(0x33ff0000),
   );
+
+  /// The middle layer of items.
+  ///
+  /// Items in this layer will be painted in between the other two layers and
+  /// will appear to exist in between the other two layers from a depth
+  /// perspective.
   static const middle = MontageLayer(
     spread: 0.75,
     scale: 1,
     zIndex: 0,
     speed: 0.5,
-    color: Color(0x3300ff00),
+    debugColor: Color(0x3300ff00),
   );
+
+  /// The front layer of items.
+  ///
+  /// Items in this layer will be painted in front of the other two layers and
+  /// will naturally appear closer to the viewer.
   static const front = MontageLayer(
     spread: 0.25,
     scale: 1,
     zIndex: -500,
     speed: 0.45,
-    color: Color(0x330000ff),
+    debugColor: Color(0x330000ff),
   );
-}
-
-class ContentProducer extends StatefulWidget {
-  const ContentProducer({
-    super.key,
-    required this.producer,
-    required this.child,
-    required this.interactive,
-  });
-
-  final PhotoProducer producer;
-  final Widget child;
-  final bool interactive;
-
-  @override
-  State<ContentProducer> createState() => ContentProducerState();
-
-  static ContentProducerState of(BuildContext context) {
-    _ContentProducerScope scope = context.dependOnInheritedWidgetOfExactType<_ContentProducerScope>()!;
-    return scope.state;
-  }
-}
-
-class ContentProducerState extends State<ContentProducer> {
-  @override
-  Widget build(BuildContext context) {
-    return _ContentProducerScope(
-      state: this,
-      child: widget.child,
-    );
-  }
-
-  /// Tells whether this content producer is running in interactive mode.
-  ///
-  /// When interactive mode is false, the app was started automatically (it is
-  /// running as a screensaver), and it is expected that the user is able to
-  /// stop the app with simple keypad interaction.
-  bool get isInteractive => widget.interactive;
-
-  Future<Photo> produce(Size sizeConstraints) => widget.producer.produce(sizeConstraints);
-}
-
-class _PhotoDisplay extends StatelessWidget {
-  const _PhotoDisplay({super.key, required this.photo});
-
-  final Photo photo;
-
-  @override
-  Widget build(BuildContext context) {
-    return Image(image: photo.image);
-  }
-}
-
-class _ContentProducerScope extends InheritedWidget {
-  const _ContentProducerScope({
-    required this.state,
-    required Widget child,
-  }) : super(child: child);
-
-  final ContentProducerState state;
-
-  @override
-  bool updateShouldNotify(_ContentProducerScope old) {
-    return state.widget.producer != old.state.widget.producer;
-  }
 }
 
 class GooglePhotosMontageContainer extends StatelessWidget {
@@ -133,8 +126,9 @@ class GooglePhotosMontageContainer extends StatelessWidget {
     final PhotoProducer producer = PhotoProducer(model);
     return ContentProducer(
       producer: producer,
-      interactive: interactive,
-      child: const MontageContainer(),
+      child: MontageContainer(
+        interactive: interactive,
+      ),
     );
   }
 }
@@ -149,21 +143,25 @@ class AssetPhotosMontageContainer extends StatelessWidget {
     final PhotoProducer producer = PhotoProducer.asset();
     return ContentProducer(
       producer: producer,
-      interactive: interactive,
-      child: const MontageContainer(),
+      child: MontageContainer(
+        interactive: interactive,
+      ),
     );
   }
 }
 
 class MontageContainer extends StatelessWidget {
-  const MontageContainer({super.key});
+  const MontageContainer({super.key, required this.interactive});
+
+  final bool interactive;
 
   static int _nextKeyIndex = 1;
   static CardKey _newKey() => CardKey(_nextKeyIndex++);
 
   @override
   Widget build(BuildContext context) {
-    return AppContainer(
+    return PhotosApp(
+      interactive: interactive,
       child: MontageController(
         builders: <MontageCardBuilder>[
           MontageCardBuilder(x: 0.00, y: 0.55, layer: MontageLayer.back, key: _newKey()),
@@ -225,214 +223,6 @@ class MontageContainer extends StatelessWidget {
 
 class CardKey extends ValueKey<int> {
   const CardKey(super.value);
-}
-
-class AppContainer extends StatefulWidget {
-  const AppContainer({super.key, required this.child});
-
-  final Widget child;
-
-  @override
-  State<AppContainer> createState() => AppContainerState();
-
-  static AppContainerState of(BuildContext context) {
-    _AppContainerScope scope = context.dependOnInheritedWidgetOfExactType<_AppContainerScope>()!;
-    return scope.state;
-  }
-}
-
-class AppContainerState extends State<AppContainer> {
-  bool _showDebugInfo = false;
-
-  bool get showDebugInfo {
-    bool showDebugInfo = _showDebugInfo;
-    assert(() {
-      showDebugInfo |= _forceShowDebugInfo;
-      return true;
-    }());
-    return showDebugInfo;
-  }
-
-  void toggleShowDebugInfo() {
-    setState(() {
-      _showDebugInfo = !_showDebugInfo;
-      assert(() {
-        debugInvertOversizedImages = !debugInvertOversizedImages;
-        return true;
-      }());
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    Widget child = KeyPressHandler(
-      child: widget.child,
-    );
-    return _AppContainerScope(
-      state: this,
-      child: MediaQuery.fromWindow(
-        child: Directionality(
-          textDirection: TextDirection.ltr,
-          child: DefaultTextStyle(
-            style: const TextStyle(
-              color: Color(0xffffffff),
-              fontSize: 10,
-            ),
-            child: ClipRect(
-              child: Stack(
-                fit: StackFit.passthrough,
-                children: <Widget>[
-                  child,
-                  if (showDebugInfo) const _DebugInfo(),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DebugInfo extends StatefulWidget {
-  const _DebugInfo({super.key});
-
-  @override
-  State<_DebugInfo> createState() => _DebugInfoState();
-}
-
-class _DebugInfoState extends State<_DebugInfo> {
-  Map<String, dynamic>? _deviceInfo;
-  late Timer _deviceInfoRefreshTimer;
-
-  static const Duration _deviceInfoRefreshRate = Duration(seconds: 3);
-
-  void _reloadDeviceInfo() async {
-    Map<String, dynamic> info = await DreamBinding.instance.getDeviceInfo();
-    if (mounted) {
-      setState(() {
-        _deviceInfo = info;
-      });
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _deviceInfoRefreshTimer = Timer.periodic(_deviceInfoRefreshRate, (Timer timer) {
-      _reloadDeviceInfo();
-    });
-    _reloadDeviceInfo();
-  }
-
-  @override
-  void dispose() {
-    _deviceInfoRefreshTimer.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final MediaQueryData mediaQueryData = MediaQuery.of(context);
-    return Stack(
-      fit: StackFit.passthrough,
-      children: [
-        Positioned(
-          top: 0,
-          left: 0,
-          right: 0,
-          child: PerformanceOverlay.allEnabled(
-            checkerboardOffscreenLayers: true,
-            checkerboardRasterCacheImages: true,
-            rasterizerThreshold: 1,
-          ),
-        ),
-        Positioned(
-          bottom: 0,
-          left: 0,
-          right: 0,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Screen size: ${mediaQueryData.size.width} x ${mediaQueryData.size.height}'),
-              Text('Device pixel ratio: ${mediaQueryData.devicePixelRatio}'),
-              Text('Max heap size (MB): ${_deviceInfo?['maxHeapSizeMB']}'),
-              Text('Available heap size (MB): ${_deviceInfo?['availHeapSizeMB']}'),
-              Text('Total system RAM (MB): ${_deviceInfo?['totalSystemRamMB']}'),
-              Text('Available system RAM (MB): ${_deviceInfo?['availableSystemRamMB']}'),
-              Text('GLES version (`ConfigurationInfo.getGlEsVersion()`): ${_deviceInfo?['gpuGlesVersion']}'),
-              Text('GL vendor: ${_deviceInfo?['glVendor']}'),
-              Text('GL renderer: ${_deviceInfo?['glRenderer']}'),
-              Text('GL version (`GL10.glGetString(GL10.GL_VERSION)`): ${_deviceInfo?['glVersion']}'),
-              Text('Image cache size (count): ${imageCache.currentSize}'),
-              Text('Image cache size (MB): ${imageCache.currentSizeBytes / (1024 * 1024)}'),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _AppContainerScope extends InheritedWidget {
-  const _AppContainerScope({
-    required this.state,
-    required Widget child,
-  }) : super(child: child);
-
-  final AppContainerState state;
-
-  @override
-  bool updateShouldNotify(_AppContainerScope old) {
-    return state.showDebugInfo != old.state.showDebugInfo;
-  }
-}
-
-class KeyPressHandler extends StatefulWidget {
-  const KeyPressHandler({super.key, required this.child});
-
-  final Widget child;
-
-  @override
-  State<KeyPressHandler> createState() => _KeyPressHandlerState();
-}
-
-class _KeyPressHandlerState extends State<KeyPressHandler> {
-  late FocusNode focusNode;
-
-  void _handleKeyEvent(KeyEvent event) async {
-    if (event is KeyDownEvent) {
-      if (event.logicalKey == LogicalKeyboardKey.digit0) {
-        AppContainer.of(context).toggleShowDebugInfo();
-      } else {
-        DreamBinding.instance.wakeUp();
-      }
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    focusNode = FocusNode();
-    SchedulerBinding.instance.addPostFrameCallback((Duration timeStamp) {
-      focusNode.requestFocus();
-    });
-  }
-
-  @override
-  void dispose() {
-    focusNode.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return KeyboardListener(
-      focusNode: focusNode,
-      onKeyEvent: _handleKeyEvent,
-      child: widget.child,
-    );
-  }
 }
 
 class MontageController extends StatefulWidget {
@@ -497,7 +287,7 @@ class _MontageControllerState extends State<MontageController> {
       if (lastLocation == null || lastLocation.dy < location.dy) {
         // Load a new photo
         const Size bounds = Size(500, 500);
-        _futures[builder.key] = future = ContentProducer.of(context).produce(bounds);
+        _futures[builder.key] = future = ContentProducer.of(context).producePhoto(bounds);
       }
       _locations[builder.key] = location;
 
@@ -676,9 +466,9 @@ class _PhotoContainerState extends State<PhotoContainer> {
     //     },
     //   ),
     // ];
-    if (AppContainer.of(context).showDebugInfo) {
+    if (PhotosApp.of(context).isShowDebugInfo) {
       children.addAll(<Widget>[
-        ColoredBox(color: widget.builder.layer.color),
+        ColoredBox(color: widget.builder.layer.debugColor),
         Positioned(
           top: 0,
           left: 0,
@@ -932,7 +722,7 @@ class RenderMontage extends RenderBox
   void paintForwards(PaintingContext context, Offset offset) {
     RenderBox? child = firstChild;
     assert(() {
-      if (_forceShowDebugInfo) {
+      if (forceShowDebugInfo) {
         Paint paint = Paint()..color = const Color(0xffffffff);
         context.canvas.drawLine(
           Offset(size.width / 2, 0),
@@ -951,10 +741,10 @@ class RenderMontage extends RenderBox
 
   @override
   void paint(PaintingContext context, Offset offset) {
-    final double distanceDx = math.tan(perspectiveAngleRadians) * distance;
+    final double distanceDx = math.tan(_perspectiveAngleRadians) * distance;
     final double centerDx = size.width / 2;
     assert(() {
-      if (_forceShowDebugInfo) {
+      if (forceShowDebugInfo) {
         Paint paint = Paint()..color = const Color(0xffcc0000);
         context.canvas.drawLine(
           Offset(centerDx, 0),
