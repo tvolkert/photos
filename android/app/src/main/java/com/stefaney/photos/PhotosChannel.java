@@ -1,6 +1,7 @@
 package com.stefaney.photos;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.ActivityManager;
 import android.app.ActivityManager.MemoryInfo;
@@ -10,7 +11,6 @@ import android.content.Context;
 import android.content.pm.ConfigurationInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
-import android.opengl.GLES10;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.os.Environment;
@@ -37,6 +37,7 @@ import io.flutter.embedding.engine.FlutterEngine;
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
 
+@SuppressLint("ObsoleteSdkInt")
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR1)
 public class PhotosChannel {
     private static final String CHANNEL_NAME = "photos.stefaney.com/channel";
@@ -83,11 +84,12 @@ public class PhotosChannel {
         });
     }
 
+    @Nullable
     public FlutterView getFlutterView() {
         return flutterView;
     }
 
-    public void setFlutterView(FlutterView flutterView) {
+    public void setFlutterView(@Nullable FlutterView flutterView) {
         this.flutterView = flutterView;
     }
 
@@ -148,7 +150,7 @@ public class PhotosChannel {
             boolean hasPermission = true;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 int permissionCheck = applicationContext.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE);
-                hasPermission &= (permissionCheck == PackageManager.PERMISSION_GRANTED);
+                hasPermission = (permissionCheck == PackageManager.PERMISSION_GRANTED);
             }
 
             if (hasPermission) {
