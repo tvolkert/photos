@@ -197,85 +197,21 @@ class _AssetPhotoProducer extends PhotoProducer {
 
   @override
   Future<Photo> produce({required Size sizeConstraints, required double scaleMultiplier}) async {
-    // final String assetName = _assets[_nextAssetIndex];
-    // final ui.ImmutableBuffer buffer = await ui.ImmutableBuffer.fromAsset(assetName);
-    // final ui.Codec codec = await ui.instantiateImageCodecFromBuffer(buffer);
-    // try {
-    //   final ui.FrameInfo frame = await codec.getNextFrame();
-    //   final ui.Image rawImage = frame.image;
-    //   final PreloadedAssetImageProvider rawProvider = PreloadedAssetImageProvider(assetName, rawImage);
-    //   final Size rawSize = Size(rawImage.width.toDouble(), rawImage.height.toDouble());
-    //   final Size size = applyBoxFit(BoxFit.scaleDown, rawSize, sizeConstraints).destination;
-    //   return ImageBackedPhoto(
-    //     id: assetName,
-    //     size: sizeConstraints,
-    //     scale: WidgetsBinding.instance.window.devicePixelRatio,
-    //     boundingConstraints: sizeConstraints,
-    //     backingImage: rawImage,
-    //     image: ResizeImage(
-    //       rawProvider,
-    //       width: size.width.toInt(),
-    //       height: size.height.toInt(),
-    //     ),
-    //   );
-    // } finally {
-    //   codec.dispose();
-    // }
-
-    // This block of code allows us to know the raw image size, and thus to
-    // know what aspect ratio to maintain when we scale down the size. The
-    // problem with this as written is that it causes the raw (large) photos to
-    // populate [imageCache], which crowds out the smaller (resized) images.
-    // However, if we replace the `AssetImage` constructor with a
-    // `NonCachingAssetImage` (defined below), then the process OOMs. Similarly,
-    // if we use the commented-out code block above instead of this code block,
-    // the process OOMs...
-    //
-    // Note that if we don't worry about maintaining the aspect ratio of the
-    // photo, and we instead tell the `ResizeImage` to use the width and height
-    // that are pulled straight from `sizeConstraints`, then the raw images
-    // correctly remain out of the image cache... but then the aspect ratio of
-    // the photos aren't maintained when they're resized.
     final String assetName = _assets[_nextAssetIndex];
-    Completer<ui.Image> completer = Completer<ui.Image>();
     final AssetImage asset = AssetImage(assetName);
-    asset.resolve(const ImageConfiguration()).addListener(
-      ImageStreamListener((ImageInfo image, bool synchronousCall) {
-        completer.complete(image.image);
-      }),
-    );
-    final ui.Image rawImage = await completer.future;
-    final Size rawSize = Size(rawImage.width.toDouble(), rawImage.height.toDouble());
-    final Size size = applyBoxFit(BoxFit.scaleDown, rawSize, sizeConstraints).destination;
+    final double scale = WidgetsBinding.instance.window.devicePixelRatio * scaleMultiplier;
     return Photo(
       id: assetName,
       size: sizeConstraints,
-      scale: WidgetsBinding.instance.window.devicePixelRatio,
+      scale: scale,
       boundingConstraints: sizeConstraints,
       image: ResizeImage(
         asset,
-        width: size.width.toInt(),
-        height: size.height.toInt(),
+        policy: ResizeImagePolicy.fit,
+        width: sizeConstraints.width.toInt(),
+        height: sizeConstraints.height.toInt(),
       ),
     );
-  }
-}
-
-class NonCachingAssetImage extends AssetImage {
-  const NonCachingAssetImage(super.assetName);
-
-  @protected
-  @override
-  void resolveStreamForKey(
-    ImageConfiguration configuration,
-    ImageStream stream,
-    AssetBundleImageKey key,
-    ImageErrorListener handleError,
-  ) {
-    if (stream.completer != null) {
-      return;
-    }
-    stream.setCompleter(loadBuffer(key, PaintingBinding.instance.instantiateImageCodecFromBuffer));
   }
 }
 
