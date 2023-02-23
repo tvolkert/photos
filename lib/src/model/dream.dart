@@ -15,18 +15,14 @@ mixin DreamBinding on AppBindingBase {
       await _channel.invokeMethod('wakeUp');
     } on PlatformException catch (error, stack) {
       debugPrint('failed to wake up: $error\n$stack');
-    } on MissingPluginException catch (error) {
-      // This channel is only wired up in non-interactive mode (when running as
-      // a screensaver), so a `MissingPluginException` signals that `wakeUp`
-      // was called when running in interactive mode.
-      assert(false, 'wakeUp() was called in interactive mode');
+    } on MissingPluginException {
+      debugPrint('No platform implementation for wakeUp()');
     }
   }
 
   Future<Map<String, dynamic>> getDeviceInfo() async {
     try {
-      Map<String, dynamic>? result =
-          await _channel.invokeMapMethod<String, dynamic>('getDeviceInfo');
+      Map<String, dynamic>? result = await _channel.invokeMapMethod<String, dynamic>('getDeviceInfo');
       return result!;
     } on PlatformException catch (error, stack) {
       debugPrint('failed to get device info: $error\n$stack');
