@@ -20,7 +20,7 @@ class _KeyPressHandlerState extends State<KeyPressHandler> {
 
   void _handleKeyEvent(KeyEvent event) async {
     if (event is KeyDownEvent) {
-      if (event.logicalKey == LogicalKeyboardKey.digit0) {
+      if (event.logicalKey == LogicalKeyboardKey.digit0 || event.logicalKey == LogicalKeyboardKey.keyD) {
         PhotosApp.of(context).toggleShowDebugInfo();
       } else {
         DreamBinding.instance.wakeUp();

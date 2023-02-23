@@ -1,9 +1,11 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show ElevatedButton, ScaffoldMessenger, SnackBar;
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:scoped_model/scoped_model.dart';
 
 import '../model/photos_library_api_model.dart';
 
+import 'app.dart';
 import 'photos_page.dart';
 
 typedef LoginCallback = Future<bool> Function();
@@ -39,9 +41,7 @@ class LoginAction extends Action<LoginIntent> {
 }
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key, required this.interactive});
-
-  final bool interactive;
+  const LoginPage({super.key});
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -67,6 +67,7 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isInteractive = PhotosApp.of(context).isInteractive;
     return ScopedModelDescendant<PhotosLibraryApiModel>(
         builder: (BuildContext context, Widget? child, PhotosLibraryApiModel apiModel) {
       return Shortcuts(
@@ -83,60 +84,57 @@ class _LoginPageState extends State<LoginPage> {
               onLoginFailure: () => _showSignInError(context),
             ),
           },
-          child: Scaffold(
-            body: SizedBox.expand(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Flexible(
-                    flex: 2,
-                    fit: FlexFit.tight,
-                    child: ColoredBox(
-                      color: const Color(0xff000000),
-                      child: AssetPhotosMontageContainer(interactive: widget.interactive),
-                    ),
+          child: SizedBox.expand(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Flexible(
+                  flex: 2,
+                  fit: FlexFit.tight,
+                  child: ColoredBox(
+                    color: Color(0xff000000),
+                    child: AssetPhotosMontageContainer(),
                   ),
-                  Flexible(
-                    flex: 1,
-                    fit: FlexFit.tight,
-                    child: ColoredBox(
-                      color: const Color(0xfff3eff3),
-                      child: Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(25),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: <Widget>[
-                              Container(
-                                padding: const EdgeInsets.all(30),
-                                child: const Text(
-                                  'To be able to show your personal photos, you must sign in to Google Photos',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w500,
-                                    color: Color(0x99000000),
-                                  ),
+                ),
+                Flexible(
+                  flex: 1,
+                  fit: FlexFit.tight,
+                  child: ColoredBox(
+                    color: const Color(0xfff3eff3),
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(25),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: <Widget>[
+                            Container(
+                              padding: const EdgeInsets.all(30),
+                              child: const Text(
+                                'To be able to show your personal photos, you must sign in to Google Photos',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0x99000000),
                                 ),
                               ),
-                              if (widget.interactive)
-                                LoginButton(globalKey: globalKey, focusNode: focusNode),
-                              if (!widget.interactive)
-                                const Text(
-                                  'To sign in to Google Photos, launch this app from your home screen',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w500,
-                                    color: Color(0x99000000),
-                                  ),
+                            ),
+                            if (isInteractive) LoginButton(globalKey: globalKey, focusNode: focusNode),
+                            if (!isInteractive)
+                              const Text(
+                                'To sign in to Google Photos, launch this app from your home screen',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0x99000000),
                                 ),
-                            ],
-                          ),
+                              ),
+                          ],
                         ),
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),

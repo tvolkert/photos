@@ -40,10 +40,15 @@ abstract class ContentProducerController {
 class _ContentProducerState extends State<ContentProducer> implements ContentProducerController {
   @override
   Widget build(BuildContext context) {
-    return _ContentProducerScope(
-      state: this,
-      child: widget.child,
-    );
+    return LayoutBuilder(builder: (BuildContext context, BoxConstraints constraints) {
+      return MediaQuery(
+        data: MediaQuery.of(context).copyWith(size: constraints.biggest),
+        child: _ContentProducerScope(
+          state: this,
+          child: widget.child,
+        ),
+      );
+    });
   }
 
   @override

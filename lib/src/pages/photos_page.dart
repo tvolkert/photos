@@ -5,7 +5,6 @@ import 'dart:ui' as ui;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter/material.dart';
 import 'package:scoped_model/scoped_model.dart';
 
 import '../model/photo.dart';
@@ -129,9 +128,7 @@ class MontageLayer {
 }
 
 class GooglePhotosMontageContainer extends StatelessWidget {
-  const GooglePhotosMontageContainer({super.key, required this.interactive});
-
-  final bool interactive;
+  const GooglePhotosMontageContainer({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -139,97 +136,86 @@ class GooglePhotosMontageContainer extends StatelessWidget {
     final PhotoProducer producer = PhotoProducer(model);
     return ContentProducer(
       producer: producer,
-      child: MontageContainer(
-        interactive: interactive,
-      ),
+      child: const MontageContainer(),
     );
   }
 }
 
 class AssetPhotosMontageContainer extends StatelessWidget {
-  const AssetPhotosMontageContainer({super.key, required this.interactive});
-
-  final bool interactive;
+  const AssetPhotosMontageContainer({super.key});
 
   @override
   Widget build(BuildContext context) {
     final PhotoProducer producer = PhotoProducer.asset();
     return ContentProducer(
       producer: producer,
-      child: MontageContainer(
-        interactive: interactive,
-      ),
+      child: const MontageContainer(),
     );
   }
 }
 
 class MontageContainer extends StatelessWidget {
-  const MontageContainer({super.key, required this.interactive});
-
-  final bool interactive;
+  const MontageContainer({super.key});
 
   static int _nextKeyIndex = 1;
   static CardKey _newKey() => CardKey(_nextKeyIndex++);
 
   @override
   Widget build(BuildContext context) {
-    return PhotosApp(
-      interactive: interactive,
-      child: MontageController(
-        builders: <MontageCardBuilder>[
-          MontageCardBuilder(x: 0.00, y: 0.55, layer: MontageLayer.back, key: _newKey()),
-          MontageCardBuilder(x: 1.00, y: 0.55, layer: MontageLayer.back, key: _newKey()),
-          MontageCardBuilder(x: 1.00, y: 0.00, layer: MontageLayer.back, key: _newKey()),
-          MontageCardBuilder(x: 0.20, y: 0.05, layer: MontageLayer.back, key: _newKey()),
-          MontageCardBuilder(x: 0.60, y: 0.09, layer: MontageLayer.back, key: _newKey()),
-          MontageCardBuilder(x: 0.05, y: 0.15, layer: MontageLayer.back, key: _newKey()),
-          MontageCardBuilder(x: 0.80, y: 0.20, layer: MontageLayer.back, key: _newKey()),
-          MontageCardBuilder(x: 0.35, y: 0.25, layer: MontageLayer.back, key: _newKey()),
-          MontageCardBuilder(x: 0.64, y: 0.30, layer: MontageLayer.back, key: _newKey()),
-          MontageCardBuilder(x: 0.25, y: 0.35, layer: MontageLayer.back, key: _newKey()),
-          MontageCardBuilder(x: 0.85, y: 0.40, layer: MontageLayer.back, key: _newKey()),
-          MontageCardBuilder(x: 0.10, y: 0.45, layer: MontageLayer.back, key: _newKey()),
-          MontageCardBuilder(x: 0.85, y: 0.49, layer: MontageLayer.back, key: _newKey()),
-          MontageCardBuilder(x: 0.40, y: 0.50, layer: MontageLayer.back, key: _newKey()),
-          MontageCardBuilder(x: 0.60, y: 0.55, layer: MontageLayer.back, key: _newKey()),
-          MontageCardBuilder(x: 0.15, y: 0.60, layer: MontageLayer.back, key: _newKey()),
-          MontageCardBuilder(x: 1.00, y: 0.65, layer: MontageLayer.back, key: _newKey()),
-          MontageCardBuilder(x: 0.65, y: 0.66, layer: MontageLayer.back, key: _newKey()),
-          MontageCardBuilder(x: 0.20, y: 0.70, layer: MontageLayer.back, key: _newKey()),
-          MontageCardBuilder(x: 0.45, y: 0.75, layer: MontageLayer.back, key: _newKey()),
-          MontageCardBuilder(x: 0.75, y: 0.80, layer: MontageLayer.back, key: _newKey()),
-          MontageCardBuilder(x: 0.09, y: 0.85, layer: MontageLayer.back, key: _newKey()),
-          MontageCardBuilder(x: 0.88, y: 0.89, layer: MontageLayer.back, key: _newKey()),
-          MontageCardBuilder(x: 0.50, y: 0.90, layer: MontageLayer.back, key: _newKey()),
-          MontageCardBuilder(x: 0.25, y: 0.95, layer: MontageLayer.back, key: _newKey()),
-          MontageCardBuilder(x: 0.04, y: 0.05, layer: MontageLayer.middle, key: _newKey()),
-          MontageCardBuilder(x: 0.40, y: 0.10, layer: MontageLayer.middle, key: _newKey()),
-          MontageCardBuilder(x: 0.96, y: 0.15, layer: MontageLayer.middle, key: _newKey()),
-          MontageCardBuilder(x: 0.24, y: 0.20, layer: MontageLayer.middle, key: _newKey()),
-          MontageCardBuilder(x: 0.80, y: 0.25, layer: MontageLayer.middle, key: _newKey()),
-          MontageCardBuilder(x: 0.10, y: 0.30, layer: MontageLayer.middle, key: _newKey()),
-          MontageCardBuilder(x: 0.70, y: 0.35, layer: MontageLayer.middle, key: _newKey()),
-          MontageCardBuilder(x: 1.00, y: 0.40, layer: MontageLayer.middle, key: _newKey()),
-          MontageCardBuilder(x: 0.10, y: 0.42, layer: MontageLayer.middle, key: _newKey()),
-          MontageCardBuilder(x: 0.67, y: 0.48, layer: MontageLayer.middle, key: _newKey()),
-          MontageCardBuilder(x: 0.22, y: 0.55, layer: MontageLayer.middle, key: _newKey()),
-          MontageCardBuilder(x: 0.84, y: 0.60, layer: MontageLayer.middle, key: _newKey()),
-          MontageCardBuilder(x: 0.15, y: 0.65, layer: MontageLayer.middle, key: _newKey()),
-          MontageCardBuilder(x: 0.74, y: 0.70, layer: MontageLayer.middle, key: _newKey()),
-          MontageCardBuilder(x: 0.10, y: 0.75, layer: MontageLayer.middle, key: _newKey()),
-          MontageCardBuilder(x: 0.88, y: 0.80, layer: MontageLayer.middle, key: _newKey()),
-          MontageCardBuilder(x: 0.35, y: 0.85, layer: MontageLayer.middle, key: _newKey()),
-          MontageCardBuilder(x: 0.03, y: 0.92, layer: MontageLayer.middle, key: _newKey()),
-          MontageCardBuilder(x: 0.85, y: 0.95, layer: MontageLayer.middle, key: _newKey()),
-          MontageCardBuilder(x: 0.00, y: 0.25, layer: MontageLayer.front, key: _newKey()),
-          MontageCardBuilder(x: 1.00, y: 0.35, layer: MontageLayer.front, key: _newKey()),
-          MontageCardBuilder(x: 0.50, y: 0.45, layer: MontageLayer.front, key: _newKey()),
-          MontageCardBuilder(x: 1.00, y: 0.55, layer: MontageLayer.front, key: _newKey()),
-          MontageCardBuilder(x: 0.00, y: 0.65, layer: MontageLayer.front, key: _newKey()),
-          MontageCardBuilder(x: 0.50, y: 0.80, layer: MontageLayer.front, key: _newKey()),
-          MontageCardBuilder(x: 0.00, y: 1.00, layer: MontageLayer.front, key: _newKey()),
-        ],
-      ),
+    return MontageController(
+      builders: <MontageCardBuilder>[
+        MontageCardBuilder(x: 0.00, y: 0.55, layer: MontageLayer.back, key: _newKey()),
+        MontageCardBuilder(x: 1.00, y: 0.55, layer: MontageLayer.back, key: _newKey()),
+        MontageCardBuilder(x: 1.00, y: 0.00, layer: MontageLayer.back, key: _newKey()),
+        MontageCardBuilder(x: 0.20, y: 0.05, layer: MontageLayer.back, key: _newKey()),
+        MontageCardBuilder(x: 0.60, y: 0.09, layer: MontageLayer.back, key: _newKey()),
+        MontageCardBuilder(x: 0.05, y: 0.15, layer: MontageLayer.back, key: _newKey()),
+        MontageCardBuilder(x: 0.80, y: 0.20, layer: MontageLayer.back, key: _newKey()),
+        MontageCardBuilder(x: 0.35, y: 0.25, layer: MontageLayer.back, key: _newKey()),
+        MontageCardBuilder(x: 0.64, y: 0.30, layer: MontageLayer.back, key: _newKey()),
+        MontageCardBuilder(x: 0.25, y: 0.35, layer: MontageLayer.back, key: _newKey()),
+        MontageCardBuilder(x: 0.85, y: 0.40, layer: MontageLayer.back, key: _newKey()),
+        MontageCardBuilder(x: 0.10, y: 0.45, layer: MontageLayer.back, key: _newKey()),
+        MontageCardBuilder(x: 0.85, y: 0.49, layer: MontageLayer.back, key: _newKey()),
+        MontageCardBuilder(x: 0.40, y: 0.50, layer: MontageLayer.back, key: _newKey()),
+        MontageCardBuilder(x: 0.60, y: 0.55, layer: MontageLayer.back, key: _newKey()),
+        MontageCardBuilder(x: 0.15, y: 0.60, layer: MontageLayer.back, key: _newKey()),
+        MontageCardBuilder(x: 1.00, y: 0.65, layer: MontageLayer.back, key: _newKey()),
+        MontageCardBuilder(x: 0.65, y: 0.66, layer: MontageLayer.back, key: _newKey()),
+        MontageCardBuilder(x: 0.20, y: 0.70, layer: MontageLayer.back, key: _newKey()),
+        MontageCardBuilder(x: 0.45, y: 0.75, layer: MontageLayer.back, key: _newKey()),
+        MontageCardBuilder(x: 0.75, y: 0.80, layer: MontageLayer.back, key: _newKey()),
+        MontageCardBuilder(x: 0.09, y: 0.85, layer: MontageLayer.back, key: _newKey()),
+        MontageCardBuilder(x: 0.88, y: 0.89, layer: MontageLayer.back, key: _newKey()),
+        MontageCardBuilder(x: 0.50, y: 0.90, layer: MontageLayer.back, key: _newKey()),
+        MontageCardBuilder(x: 0.25, y: 0.95, layer: MontageLayer.back, key: _newKey()),
+        MontageCardBuilder(x: 0.04, y: 0.05, layer: MontageLayer.middle, key: _newKey()),
+        MontageCardBuilder(x: 0.40, y: 0.10, layer: MontageLayer.middle, key: _newKey()),
+        MontageCardBuilder(x: 0.96, y: 0.15, layer: MontageLayer.middle, key: _newKey()),
+        MontageCardBuilder(x: 0.24, y: 0.20, layer: MontageLayer.middle, key: _newKey()),
+        MontageCardBuilder(x: 0.80, y: 0.25, layer: MontageLayer.middle, key: _newKey()),
+        MontageCardBuilder(x: 0.10, y: 0.30, layer: MontageLayer.middle, key: _newKey()),
+        MontageCardBuilder(x: 0.70, y: 0.35, layer: MontageLayer.middle, key: _newKey()),
+        MontageCardBuilder(x: 1.00, y: 0.40, layer: MontageLayer.middle, key: _newKey()),
+        MontageCardBuilder(x: 0.10, y: 0.42, layer: MontageLayer.middle, key: _newKey()),
+        MontageCardBuilder(x: 0.67, y: 0.48, layer: MontageLayer.middle, key: _newKey()),
+        MontageCardBuilder(x: 0.22, y: 0.55, layer: MontageLayer.middle, key: _newKey()),
+        MontageCardBuilder(x: 0.84, y: 0.60, layer: MontageLayer.middle, key: _newKey()),
+        MontageCardBuilder(x: 0.15, y: 0.65, layer: MontageLayer.middle, key: _newKey()),
+        MontageCardBuilder(x: 0.74, y: 0.70, layer: MontageLayer.middle, key: _newKey()),
+        MontageCardBuilder(x: 0.10, y: 0.75, layer: MontageLayer.middle, key: _newKey()),
+        MontageCardBuilder(x: 0.88, y: 0.80, layer: MontageLayer.middle, key: _newKey()),
+        MontageCardBuilder(x: 0.35, y: 0.85, layer: MontageLayer.middle, key: _newKey()),
+        MontageCardBuilder(x: 0.03, y: 0.92, layer: MontageLayer.middle, key: _newKey()),
+        MontageCardBuilder(x: 0.85, y: 0.95, layer: MontageLayer.middle, key: _newKey()),
+        MontageCardBuilder(x: 0.00, y: 0.25, layer: MontageLayer.front, key: _newKey()),
+        MontageCardBuilder(x: 1.00, y: 0.35, layer: MontageLayer.front, key: _newKey()),
+        MontageCardBuilder(x: 0.50, y: 0.45, layer: MontageLayer.front, key: _newKey()),
+        MontageCardBuilder(x: 1.00, y: 0.55, layer: MontageLayer.front, key: _newKey()),
+        MontageCardBuilder(x: 0.00, y: 0.65, layer: MontageLayer.front, key: _newKey()),
+        MontageCardBuilder(x: 0.50, y: 0.80, layer: MontageLayer.front, key: _newKey()),
+        MontageCardBuilder(x: 0.00, y: 1.00, layer: MontageLayer.front, key: _newKey()),
+      ],
     );
   }
 }
@@ -385,11 +371,6 @@ class _PhotoContainerState extends State<PhotoContainer> {
 
   void _handleImage(ImageInfo image, bool synchronousCall) {
     assert(() {
-      debugPrint('~!@ : for photo ${widget.builder.key.value}, '
-          'given constraints of ${_currentPhoto!.boundingConstraints}} '
-          'applied to media item size ${_currentPhoto!.mediaItem?.size}, '
-          'we got ${_currentPhoto!.size} '
-          'with scale of ${_currentPhoto!.scale}');
       return true;
     }());
     // If we wanted to NOT show animated GIFs, we'd call `_unsubscribeImageStream()`
@@ -457,33 +438,6 @@ class _PhotoContainerState extends State<PhotoContainer> {
         debugImageLabel: widget.debugImageLabel,
       ));
     }
-    // List<Widget> children = <Widget>[
-    //   FutureBuilder<Photo>(
-    //     future: widget.future,
-    //     builder: (BuildContext context, AsyncSnapshot<Photo> snapshot) {
-    //       switch (snapshot.connectionState) {
-    //         case ConnectionState.none:
-    //         // Fallthrough
-    //         case ConnectionState.waiting:
-    //           // TODO: Return something with UI
-    //           return Container();
-    //         case ConnectionState.done:
-    //           if (snapshot.hasError) {
-    //             // TODO: Return something with UI
-    //             return Container();
-    //           } else {
-    //             assert(snapshot.hasData);
-    //             return _PhotoDisplay(photo: snapshot.data!);
-    //           }
-    //         case ConnectionState.active:
-    //           // This state is unused in `FutureBuilder`.
-    //           assert(false);
-    //           break;
-    //       }
-    //       return Container();
-    //     },
-    //   ),
-    // ];
     if (PhotosApp.of(context).isShowDebugInfo) {
       children.addAll(<Widget>[
         ColoredBox(color: widget.builder.layer.debugColor),
