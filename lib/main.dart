@@ -27,3 +27,13 @@ Future<void> run({required bool interactive}) async {
     ),
   );
 }
+
+@pragma('vm:entry-point')
+void settingsMain() {
+  runApp(
+    const PhotosApp(
+      interactive: true,
+      child: ColoredBox(color: Color(0xffcc0000)),
+    ),
+  );
+}
