@@ -54,6 +54,7 @@ class _ContentProducerState extends State<ContentProducer> implements ContentPro
   @override
   Future<Photo> producePhoto({required Size sizeConstraints, required double scaleMultiplier}) {
     return widget.producer.produce(
+      context: context,
       sizeConstraints: sizeConstraints,
       scaleMultiplier: scaleMultiplier,
     );

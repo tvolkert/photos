@@ -18,6 +18,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.provider.MediaStore;
 import android.service.dreams.DreamService;
+import android.util.Log;
 import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -40,10 +41,10 @@ import io.flutter.plugin.common.MethodChannel;
 @SuppressLint("ObsoleteSdkInt")
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR1)
 public class PhotosChannel {
+    private static final String TAG = "flutter";
     private static final String CHANNEL_NAME = "photos.stefaney.com/channel";
     private static final String METHOD_NAME_WAKE_UP = "wakeUp";
-    private static final String METHOD_NAME_TMP_GET_DOWNLOADS_DIRECTORY = "tmpGetDownloadsDirectory";
-    private static final String METHOD_NAME_TMP_WRITE_FILE = "tmpWriteFile";
+    private static final String METHOD_NAME_WRITE_FILE_TO_DOWNLOADS = "writeFileToDownloads";
     private static final String METHOD_NAME_GET_DEVICE_INFO = "getDeviceInfo";
 
     @NonNull private final FlutterEngine flutterEngine;
@@ -71,11 +72,8 @@ public class PhotosChannel {
                 case METHOD_NAME_WAKE_UP:
                     wakeUp(result);
                     break;
-                case METHOD_NAME_TMP_GET_DOWNLOADS_DIRECTORY:
-                    getDownloadsDirectory(result);
-                    break;
-                case METHOD_NAME_TMP_WRITE_FILE:
-                    writeFile(methodCall, result);
+                case METHOD_NAME_WRITE_FILE_TO_DOWNLOADS:
+                    writeFileToDownloads(methodCall, result);
                     break;
                 case METHOD_NAME_GET_DEVICE_INFO:
                     getDeviceInfo(result);
@@ -104,49 +102,26 @@ public class PhotosChannel {
         result.success(null);
     }
 
-    private void getDownloadsDirectory(MethodChannel.Result result) {
-        // MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL);
-        // Cursor cursor = null;
-        // if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-        //     cursor = getApplicationContext().getContentResolver().query(
-        //             MediaStore.Downloads.EXTERNAL_CONTENT_URI,
-        //             projection,
-        //             selection,
-        //             selectionArgs,
-        //             sortOrder
-        //     );
-        // }
-
-        // while (cursor.moveToNext()) {
-        //     // Use an ID column from the projection to get
-        //     // a URI representing the media item itself.
-        // }
-        File file = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-        result.success(file.getPath());
-    }
-
-    private void writeFile(MethodCall methodCall, MethodChannel.Result result) {
+    private void writeFileToDownloads(MethodCall methodCall, MethodChannel.Result result) {
         String basename = methodCall.argument("basename");
         byte[] bytes = methodCall.argument("bytes");
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            System.err.println("Using newer than Android Q");
+            Log.i(TAG, "writeFileToDownloads: SDK is newer than Android Q");
             ContentResolver resolver = applicationContext.getContentResolver();
             ContentValues values = new ContentValues();
             values.put(MediaStore.MediaColumns.DISPLAY_NAME, basename);
-            values.put(MediaStore.MediaColumns.MIME_TYPE, "text/plain");
+            values.put(MediaStore.MediaColumns.MIME_TYPE, "application/octet-stream");
             values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
             Uri uri = resolver.insert(MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL), values);
             try (OutputStream out = resolver.openOutputStream(uri, "wt")) {
                 out.write(bytes);
                 out.flush();
             } catch (IOException ex) {
-                System.err.println("uh oh 0");
-                System.err.println(ex.toString());
-                ex.printStackTrace();
+                Log.e(TAG, "writeFileToDownloads: error while writing file", ex);
             }
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.FROYO) {
-            System.err.println("Using older than Android Q");
+            Log.i(TAG, "writeFileToDownloads: SDK is older than Android Q");
             boolean hasPermission = true;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 int permissionCheck = applicationContext.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE);
@@ -159,20 +134,16 @@ public class PhotosChannel {
                 try (OutputStream out = new BufferedOutputStream(new FileOutputStream(outputPath))) {
                     out.write(bytes);
                 } catch (IOException ex) {
-                    System.err.println("uh oh 1");
-                    System.err.println(ex.toString());
-                    ex.printStackTrace();
+                    Log.e(TAG, "writeFileToDownloads: error while writing file", ex);
                 } catch (Throwable ex) {
-                    System.err.println("uh oh 2");
-                    System.err.println(ex.toString());
-                    ex.printStackTrace();
+                    Log.e(TAG, "writeFileToDownloads: error while writing file", ex);
                 }
             } else {
-                System.err.println("Don't have permission!");
+                Log.e(TAG, "writeFileToDownloads: didn't have permission to write the file!");
             }
         }
 
-        System.err.println("success");
+        Log.d(TAG, "writeFileToDownloads: success");
         result.success(null);
     }
 

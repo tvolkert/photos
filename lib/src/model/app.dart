@@ -4,9 +4,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:photos/src/model/dream.dart';
 
+import 'auth.dart';
 import 'files.dart';
 
-class AppBinding extends AppBindingBase with FilesBinding, DreamBinding {
+class AppBinding extends AppBindingBase with FilesBinding, DreamBinding, AuthBinding {
   /// Creates and initializes the application binding if necessary.
   ///
   /// Applications should call this method before calling [runApp].

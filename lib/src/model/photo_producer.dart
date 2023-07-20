@@ -29,7 +29,11 @@ abstract class PhotoProducer {
   const PhotoProducer._();
 
   /// Produces a [Photo] that fits within the specified size constraints.
-  Future<Photo> produce({required Size sizeConstraints, required double scaleMultiplier});
+  Future<Photo> produce({
+    required BuildContext context,
+    required Size sizeConstraints,
+    required double scaleMultiplier,
+  });
 }
 
 class _GooglePhotosPhotoProducer extends PhotoProducer {
@@ -94,7 +98,13 @@ class _GooglePhotosPhotoProducer extends PhotoProducer {
   }
 
   @override
-  Future<Photo> produce({required Size sizeConstraints, required double scaleMultiplier}) async {
+  Future<Photo> produce({
+    required BuildContext context,
+    required Size sizeConstraints,
+    required double scaleMultiplier,
+  }) async {
+    final ui.FlutterView window = View.of(context);
+
     if (queue.isEmpty) {
       // The queue can still be empty after this call, e.g. if the database
       // files haven't been created yet.
@@ -102,18 +112,20 @@ class _GooglePhotosPhotoProducer extends PhotoProducer {
     }
 
     if (queue.isEmpty) {
+      // ignore: use_build_context_synchronously
       return await const _AssetPhotoProducer().produce(
+        context: context,
         sizeConstraints: sizeConstraints,
         scaleMultiplier: scaleMultiplier,
       );
     } else {
       final MediaItem mediaItem = queue.removeLast();
       final Size photoSize = applyBoxFit(BoxFit.scaleDown, mediaItem.size!, sizeConstraints).destination;
-      final double scale = WidgetsBinding.instance.window.devicePixelRatio * scaleMultiplier;
+      final double scale = window.devicePixelRatio * scaleMultiplier;
       return Photo(
         id: mediaItem.id,
         mediaItem: mediaItem,
-        size: photoSize / WidgetsBinding.instance.window.devicePixelRatio,
+        size: photoSize / window.devicePixelRatio,
         scale: scale,
         boundingConstraints: sizeConstraints,
         image: NetworkImage(mediaItem.getSizedUrl(photoSize), scale: scale),
@@ -126,33 +138,6 @@ class ImmediateImageStreamCompleter extends ImageStreamCompleter {
   ImmediateImageStreamCompleter(ImageInfo image) {
     setImage(image);
   }
-}
-
-class PreloadedAssetImageProvider extends ImageProvider<String> {
-  PreloadedAssetImageProvider(this.assetName, this.image)
-      : completer = ImmediateImageStreamCompleter(ImageInfo(image: image));
-
-  final String assetName;
-  final ui.Image image;
-  final ImageStreamCompleter completer;
-
-  @override
-  Future<String> obtainKey(ImageConfiguration configuration) {
-    return Future<String>.value(assetName);
-  }
-
-  @override
-  void resolveStreamForKey(
-    ImageConfiguration configuration,
-    ImageStream stream,
-    String key,
-    ImageErrorListener handleError,
-  ) {
-    stream.setCompleter(completer);
-  }
-
-  @override
-  ImageStreamCompleter loadBuffer(String key, DecoderBufferCallback decode) => completer;
 }
 
 class ImageBackedPhoto extends Photo {
@@ -196,7 +181,11 @@ class _AssetPhotoProducer extends PhotoProducer {
   }
 
   @override
-  Future<Photo> produce({required Size sizeConstraints, required double scaleMultiplier}) async {
+  Future<Photo> produce({
+    required BuildContext context,
+    required Size sizeConstraints,
+    required double scaleMultiplier,
+  }) async {
     final String assetName = _assets[_nextAssetIndex];
     final AssetImage asset = AssetImage(assetName);
     final double scale = WidgetsBinding.instance.window.devicePixelRatio * scaleMultiplier;
@@ -219,7 +208,11 @@ class _StaticPhotoProducer extends PhotoProducer {
   const _StaticPhotoProducer() : super._();
 
   @override
-  Future<Photo> produce({required Size sizeConstraints, required double scaleMultiplier}) async {
+  Future<Photo> produce({
+    required BuildContext context,
+    required Size sizeConstraints,
+    required double scaleMultiplier,
+  }) async {
     const Size staticSize = Size(429, 429);
     final MediaItem staticMediaItem = MediaItem(
       id: 'profile_photo',

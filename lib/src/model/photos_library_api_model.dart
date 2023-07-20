@@ -4,9 +4,8 @@ import 'dart:math' as math;
 
 import 'package:file/file.dart';
 import 'package:flutter/foundation.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
-import 'package:scoped_model/scoped_model.dart';
+import 'package:photos/src/model/auth.dart';
 
 import '../photos_library_api/batch_get_request.dart';
 import '../photos_library_api/batch_get_response.dart';
@@ -35,6 +34,10 @@ enum PhotosLibraryApiState {
   /// access token.
   authenticated,
 
+  /// The user was previously authenticated, but their authentication token has
+  /// expired and needs renewal.
+  authenticationExpired,
+
   /// The user has attempted authentication and failed, or their OAuth access
   /// token has expired and in need of renewal.
   unauthenticated,
@@ -57,21 +60,16 @@ enum PhotosLibraryApiState {
 /// Each entry in a database file is a utf8-encoded [MediaItem.id], which is
 /// then right-padded with [paddingByte] until the byte sequence reaches a
 /// length of [blockSize].
-class PhotosLibraryApiModel extends Model {
+class PhotosLibraryApiModel extends ChangeNotifier {
   PhotosLibraryApiState _state = PhotosLibraryApiState.pendingAuthentication;
   PhotosLibraryApiClient? _client;
-  GoogleSignInAccount? _currentUser;
 
-  final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: <String>[
-    'https://www.googleapis.com/auth/photoslibrary.readonly',
-  ]);
+  PhotosLibraryApiModel() {
+    AuthBinding.instance.onUserChanged = _handleCurrentUserChanged;
+    AuthBinding.instance.onAuthTokensRenewed = _handleAuthTokensRenewed;
+  }
 
-  /// Callback that runs once a sign-in attempt has completed, either
-  /// explicitly or silently.
-  ///
-  /// A completed sign-in attempt does _not_ mean that the user is
-  /// authenticated; the attempt might have been completed unsuccessfully or
-  /// been aborted.
+  /// Callback that runs when the current user changes.
   ///
   /// This method sets the API [state] and refreshes the database files if
   /// needed (and if the user is authenticated).
@@ -79,20 +77,27 @@ class PhotosLibraryApiModel extends Model {
   /// See also:
   ///
   ///  * [populateDatabase], which updates the database files.
-  Future<void> _handleSignInComplete() async {
-    _currentUser = _googleSignIn.currentUser;
+  Future<void> _handleCurrentUserChanged() async {
+    final AuthBinding auth = AuthBinding.instance;
+    debugPrint('Current user changed; isSignedIn=${auth.isSignedIn}; user=${auth.maybeUser}');
     PhotosLibraryApiState newState;
-    if (_currentUser == null) {
+    if (!auth.isSignedIn) {
       newState = PhotosLibraryApiState.unauthenticated;
       _client = null;
     } else {
       newState = PhotosLibraryApiState.authenticated;
-      _client = PhotosLibraryApiClient(_currentUser!.authHeaders);
+      _client = PhotosLibraryApiClient(auth.user.authHeaders);
       if (!_areDatabaseFilesUpToDate) {
         _refreshDatabaseFiles();
       }
     }
     state = newState;
+  }
+
+  Future<void> _handleAuthTokensRenewed() async {
+    final AuthBinding auth = AuthBinding.instance;
+    _client = PhotosLibraryApiClient(auth.user.authHeaders);
+    state = PhotosLibraryApiState.authenticated;
   }
 
   /// Tells whether or not the database files are sufficiently up to date or
@@ -140,6 +145,23 @@ class PhotosLibraryApiModel extends Model {
     final List<int> bytes = codec.encodeMediaItemIds(_extractVideos(mediaItems));
     if (bytes.isNotEmpty) {
       await file.writeAsBytes(bytes, mode: FileMode.append, flush: true);
+    }
+  }
+
+  /// Handles the case where a signed-in user has their auth token expire.
+  ///
+  /// Parts of the app that detect signals that the auth token has expired
+  /// should call this method when those signals are detected.
+  ///
+  /// While it may yield unnecessary network traffic, it is functionally safe
+  /// to call this method even when the auth token has not expired.
+  Future<void> handleAuthTokenExpired() async {
+    debugPrint('Detected expired OAuth token; renewing...');
+    state = PhotosLibraryApiState.authenticationExpired;
+    try {
+      await AuthBinding.instance.renewExpiredAuthToken();
+    } catch (error, stack) {
+      debugPrint('Error while trying to renew auth token: $error\n$stack');
     }
   }
 
@@ -228,13 +250,34 @@ class PhotosLibraryApiModel extends Model {
     final RandomPickingStrategy strategy = RandomPickingStrategy(max: count, random: random);
     final List<String> mediaItemIds = <String>[];
     final RandomAccessFile handle = await files.photosFile.open();
+    final Map<String, int> debugMediaItemIndexes = <String, int>{};
     try {
       for (int index in strategy.pickN(batchSize)) {
         final int offset = index * DatabaseFileCodec.blockSize;
         handle.setPositionSync(offset);
-        final Uint8List byteBlock = await handle.read(DatabaseFileCodec.blockSize);
-        final String mediaItemId = codec.decodeMediaItemId(byteBlock);
-        mediaItemIds.add(mediaItemId);
+        final Uint8List bytes = await handle.read(DatabaseFileCodec.blockSize);
+        String mediaItemId = codec.decodeMediaItemId(bytes);
+        assert(
+          mediaItemId.isNotEmpty,
+          'In ${files.photosFile.path}, media item $index'
+          '(offset $offset) was empty. Bytes were $bytes',
+        );
+        assert(() {
+          if (debugMediaItemIndexes.containsKey(mediaItemId)) {
+            final int existingIndex = debugMediaItemIndexes[mediaItemId]!;
+            debugPrint('Duplicate media item ID ($mediaItemId) found at indexes $existingIndex and $index');
+            mediaItemId = '';
+            batchSize--;
+          } else {
+            debugMediaItemIndexes[mediaItemId] = index;
+          }
+          return true;
+        }());
+        if (mediaItemId.isNotEmpty) {
+          // In debug mode, this would have failed an assert already;
+          // This check is thus for release mode only.
+          mediaItemIds.add(mediaItemId);
+        }
       }
     } finally {
       handle.closeSync();
@@ -251,30 +294,6 @@ class PhotosLibraryApiModel extends Model {
     }
   }
 
-  Future<bool> signIn() async {
-    if (_currentUser != null) {
-      assert(state == PhotosLibraryApiState.authenticated);
-      return true;
-    }
-
-    assert(state != PhotosLibraryApiState.authenticated);
-    await _googleSignIn.signIn();
-    await _handleSignInComplete();
-    return state == PhotosLibraryApiState.authenticated;
-  }
-
-  Future<void> signOut() async {
-    await _googleSignIn.disconnect();
-    _currentUser = null;
-    _client = null;
-    state = PhotosLibraryApiState.unauthenticated;
-  }
-
-  Future<void> signInSilently() async {
-    await _googleSignIn.signInSilently();
-    await _handleSignInComplete();
-  }
-
   Future<ListMediaItemsResponse> _listMediaItems([String? nextPageToken]) async {
     final ListMediaItemsRequest request = ListMediaItemsRequest(
       pageSize: 100,
@@ -283,39 +302,46 @@ class PhotosLibraryApiModel extends Model {
     return await _client!.listMediaItems(request);
   }
 
-  Future<MediaItem?> getMediaItem(String id) async {
-    MediaItem? result;
-    while (result == null) {
-      try {
-        result = await _client!.getMediaItem(id);
-      } on GetMediaItemException catch (error) {
-        switch (error.statusCode) {
-          case HttpStatus.unauthorized:
-            debugPrint('Renewing OAuth access token...');
-            await signInSilently();
-            if (state == PhotosLibraryApiState.unauthenticated) {
-              // TODO: retry
-              debugPrint('Unable to renew OAuth access token; bailing out');
-              return null;
-            }
-            break;
-          case HttpStatus.tooManyRequests:
-            final PhotosLibraryApiState previousState = state;
-            state = PhotosLibraryApiState.rateLimited;
-            await Future.delayed(_kBackOffDuration);
-            state = previousState;
-            break;
-          default:
-            rethrow;
-        }
-      }
-    }
-    return result;
-  }
+  // Future<MediaItem?> getMediaItem(String id) async {
+  //   MediaItem? result;
+  //   while (result == null) {
+  //     try {
+  //       result = await _client!.getMediaItem(id);
+  //     } on GetMediaItemException catch (error) {
+  //       switch (error.statusCode) {
+  //         case HttpStatus.unauthorized:
+  //           debugPrint('Renewing OAuth access token in getMediaItem...');
+  //           await AuthBinding.instance.signInSilently();
+  //           if (state == PhotosLibraryApiState.unauthenticated) {
+  //             // TODO: retry
+  //             debugPrint('Unable to renew OAuth access token; bailing out');
+  //             return null;
+  //           }
+  //           break;
+  //         case HttpStatus.tooManyRequests:
+  //           final PhotosLibraryApiState previousState = state;
+  //           state = PhotosLibraryApiState.rateLimited;
+  //           await Future.delayed(_kBackOffDuration);
+  //           state = previousState;
+  //           break;
+  //         default:
+  //           rethrow;
+  //       }
+  //     }
+  //   }
+  //   return result;
+  // }
 
+  static int _getMediaItemsInvocation = 0;
   Future<List<MediaItem>> getMediaItems(List<String> mediaItemIds) async {
     List<MediaItem>? results;
+    int attempt = 0;
     while (results == null) {
+      assert(() {
+        _getMediaItemsInvocation++;
+        attempt++;
+        return true;
+      }());
       try {
         final BatchGetRequest request = BatchGetRequest(mediaItemIds: mediaItemIds);
         final BatchGetResponse response = await _client!.batchGet(request);
@@ -344,13 +370,17 @@ class PhotosLibraryApiModel extends Model {
       } on PhotosApiException catch (error) {
         switch (error.statusCode) {
           case HttpStatus.unauthorized:
-            debugPrint('Renewing OAuth access token...');
-            await signInSilently();
-            if (state == PhotosLibraryApiState.unauthenticated) {
-              // TODO: retry
-              debugPrint('Unable to renew OAuth access token; bailing out');
-              return <MediaItem>[];
-            }
+            assert(() {
+              debugPrint('Received ${error.statusCode} while trying to betch get media item IDs. '
+                  'Reason given was "${error.reasonPhrase}". State is currently $state');
+              debugPrint('Renewing OAuth access token in getMediaItems (attempt #$attempt, invocation #$_getMediaItemsInvocation)...');
+              return true;
+            }());
+            await handleAuthTokenExpired();
+            assert(() {
+              debugPrint('Successfully renewed OAuth token; state is now $state (attempt #$attempt, invocation #$_getMediaItemsInvocation)');
+              return true;
+            }());
             break;
           case HttpStatus.tooManyRequests:
             final PhotosLibraryApiState previousState = state;
@@ -361,6 +391,8 @@ class PhotosLibraryApiModel extends Model {
           default:
             debugPrint('${error.statusCode} ${error.reasonPhrase} : ${error.responseBody}');
             debugPrint('Request was ${error.requestUrl}');
+            debugPrint('Media item IDs (${mediaItemIds.length}) were:');
+            mediaItemIds.forEach(debugPrint);
             debugPrint('${StackTrace.current}');
             return <MediaItem>[];
         }

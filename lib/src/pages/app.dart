@@ -1,16 +1,25 @@
 import 'dart:async';
 
 import 'package:flutter/widgets.dart';
+import 'package:photos/src/model/auth.dart';
 
 import '../model/dream.dart';
+import '../model/photos_library_api_model.dart';
 
 import 'debug.dart';
+import 'error_display.dart';
 import 'key_press_handler.dart';
 
 class PhotosApp extends StatefulWidget {
-  const PhotosApp({super.key, required this.interactive, required this.child});
+  const PhotosApp({
+    super.key,
+    required this.interactive,
+    required this.apiModel,
+    required this.child,
+  });
 
   final bool interactive;
+  final PhotosLibraryApiModel apiModel;
   final Widget child;
 
   @override
@@ -24,6 +33,9 @@ class PhotosApp extends StatefulWidget {
 
 /// Instances of this class can be obtained by calling [PhotosApp.of].
 abstract class PhotosAppController {
+  /// The Google Photos API model.
+  PhotosLibraryApiModel get apiModel;
+
   /// Tells whether this content producer is running in interactive mode.
   ///
   /// When interactive mode is false, the app was started automatically (it is
@@ -31,13 +43,41 @@ abstract class PhotosAppController {
   /// stop the app with simple keypad interaction.
   bool get isInteractive;
 
+  /// Tells whether debug info is currently being shown to the user.
   bool get isShowDebugInfo;
 
+  /// Toggles whether debug info is shown to the user.
   void toggleShowDebugInfo();
+
+  /// Adds an error to the list of errors to possibly show the user.
+  ///
+  /// Errors wll only be shown to the user in debug mode.
+  void addError(Object error, StackTrace? stack);
 }
 
 class _PhotosAppState extends State<PhotosApp> implements PhotosAppController {
   bool _showDebugInfo = false;
+  final List<(Object, StackTrace?)> _errors = <(Object, StackTrace?)>[];
+
+  void _removeLastError() {
+    assert(() {
+      if (mounted && _errors.isNotEmpty) {
+        setState(() {
+          _errors.removeLast();
+        });
+      }
+      return true;
+    }());
+  }
+
+  void _handleApiModelUpdate() {
+    setState(() {
+      // no-op; rebuild will pick up the latest api state.
+    });
+  }
+
+  @override
+  PhotosLibraryApiModel get apiModel => widget.apiModel;
 
   @override
   bool get isInteractive => widget.interactive;
@@ -64,10 +104,36 @@ class _PhotosAppState extends State<PhotosApp> implements PhotosAppController {
   }
 
   @override
+  void addError(Object error, StackTrace? stack) {
+    assert(() {
+      setState(() {
+        _errors.add((error, stack));
+        Timer(const Duration(seconds: 5), _removeLastError);
+      });
+      return true;
+    }());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    widget.apiModel.addListener(_handleApiModelUpdate);
+  }
+
+  @override
+  void dispose() {
+    widget.apiModel.removeListener(_handleApiModelUpdate);
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return _PhotosAppScope(
       state: this,
-      child: MediaQuery.fromWindow(
+      apiState: widget.apiModel.state,
+      isShowDebugInfo: _showDebugInfo,
+      child: MediaQuery.fromView(
+        view: View.of(context),
         child: Directionality(
           textDirection: TextDirection.ltr,
           child: DefaultTextStyle(
@@ -80,6 +146,7 @@ class _PhotosAppState extends State<PhotosApp> implements PhotosAppController {
                 fit: StackFit.passthrough,
                 children: <Widget>[
                   KeyPressHandler(child: widget.child),
+                  if (_errors.isNotEmpty) ErrorDisplay(errors: _errors),
                   if (isShowDebugInfo) const _DebugInfo(),
                 ],
               ),
@@ -174,13 +241,18 @@ class _DebugInfoState extends State<_DebugInfo> {
 class _PhotosAppScope extends InheritedWidget {
   const _PhotosAppScope({
     required this.state,
+    required this.apiState,
+    required this.isShowDebugInfo,
     required Widget child,
   }) : super(child: child);
 
   final _PhotosAppState state;
+  final PhotosLibraryApiState apiState;
+  final bool isShowDebugInfo;
 
   @override
   bool updateShouldNotify(_PhotosAppScope old) {
-    return state.isShowDebugInfo != old.state.isShowDebugInfo;
+    return isShowDebugInfo != old.isShowDebugInfo
+        || apiState != old.apiState;
   }
 }

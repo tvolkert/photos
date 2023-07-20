@@ -1,11 +1,12 @@
 import 'dart:async';
+import 'dart:io' show HttpStatus;
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
-import 'package:scoped_model/scoped_model.dart';
+import 'package:photos/src/model/auth.dart';
 
 import '../model/photo.dart';
 import '../model/photo_producer.dart';
@@ -132,8 +133,8 @@ class GooglePhotosMontageContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final PhotosLibraryApiModel model = ScopedModel.of<PhotosLibraryApiModel>(context);
-    final PhotoProducer producer = PhotoProducer(model);
+    final PhotosLibraryApiModel apiModel = PhotosApp.of(context).apiModel;
+    final PhotoProducer producer = PhotoProducer(apiModel);
     return ContentProducer(
       producer: producer,
       child: const MontageContainer(),
@@ -348,7 +349,7 @@ class _PhotoContainerState extends State<PhotoContainer> {
         _unsubscribeFuture();
         _subscribeImageStream();
       }
-    }, onError: _handleError);
+    }, onError: _handleErrorFromWidgetFuture);
   }
 
   void _unsubscribeFuture() {
@@ -382,8 +383,21 @@ class _PhotoContainerState extends State<PhotoContainer> {
     });
   }
 
-  void _handleError(Object error, StackTrace? stack) {
-    debugPrint('Error while loading image: $error\n$stack');
+  void _handleErrorFromWidgetFuture(Object error, StackTrace? stack) {
+    _handleError('loading image', error, stack);
+  }
+
+  void _handleErrorFromImageStream(Object error, StackTrace? stack) {
+    _handleError('loading image info', error, stack);
+  }
+
+  void _handleError(String description, Object error, StackTrace? stack) async {
+    debugPrint('Error while $description: $error\n$stack');
+    PhotosApp.of(context).addError(error, stack);
+    if (error is NetworkImageLoadException && error.statusCode == HttpStatus.forbidden) {
+      debugPrint('Renewing auth token');
+      await PhotosApp.of(context).apiModel.handleAuthTokenExpired();
+    }
   }
 
   void _disposeImageInfo() {
@@ -403,7 +417,7 @@ class _PhotoContainerState extends State<PhotoContainer> {
   @override
   void initState() {
     super.initState();
-    _imageStreamListener = ImageStreamListener(_handleImage, onError: _handleError);
+    _imageStreamListener = ImageStreamListener(_handleImage, onError: _handleErrorFromImageStream);
     _subscribeFuture();
   }
 
@@ -598,7 +612,7 @@ class ThetaTween extends Tween<double> {
 }
 
 class Montage extends MultiChildRenderObjectWidget {
-  Montage({
+  const Montage({
     super.key,
     this.rotation = 0,
     this.distance = 0,

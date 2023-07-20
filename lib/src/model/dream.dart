@@ -32,6 +32,20 @@ mixin DreamBinding on AppBindingBase {
     }
   }
 
+  Future<void> writeFileToDownloads(String basename, Uint8List bytes) async {
+    debugPrint('Writing $basename (${bytes.length} bytes) to downloads folder.');
+    try {
+      await _channel.invokeMethod<void>('writeFileToDownloads', <String, Object>{
+        'basename': basename,
+        'bytes': bytes,
+      });
+    } on PlatformException catch (error, stack) {
+      debugPrint('failed to write file: $error\n$stack');
+    } on MissingPluginException {
+      // No-op
+    }
+  }
+
   @override
   @protected
   @mustCallSuper

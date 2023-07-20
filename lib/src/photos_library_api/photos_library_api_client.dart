@@ -26,7 +26,7 @@ class PhotosLibraryApiClient {
     final http.Response response = await http.get(url, headers: await _authHeaders);
 
     if (response.statusCode != HttpStatus.ok) {
-      throw PhotosApiException(url, response);
+      throw PhotosApiException(response);
     }
 
     try {
@@ -46,7 +46,7 @@ class PhotosLibraryApiClient {
     );
 
     if (response.statusCode != 200) {
-      throw PhotosApiException(url, response);
+      throw PhotosApiException(response);
     }
 
     return SearchMediaItemsResponse.fromJson(jsonDecode(response.body));
@@ -73,7 +73,7 @@ class PhotosLibraryApiClient {
     final http.Response response = await http.get(url, headers: await _authHeaders);
 
     if (response.statusCode != 200) {
-      throw PhotosApiException(url, response);
+      throw PhotosApiException(response);
     }
 
     return BatchGetResponse.fromJson(jsonDecode(response.body));

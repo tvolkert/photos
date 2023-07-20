@@ -3,14 +3,13 @@ description: A Google Photos leanback experience
 version: 1.0.0
 
 environment:
-  sdk: ">=2.17.0 <3.0.0"
+  sdk: ">=3.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
   file: any
   google_sign_in: any
-  scoped_model: any
   http: any
   json_annotation: any
   path: any
