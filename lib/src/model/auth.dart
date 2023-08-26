@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:photos/src/model/files.dart';
 
 import 'app.dart';
 
@@ -69,6 +70,8 @@ mixin AuthBinding on AppBindingBase {
   Future<void> signOut() async {
     await _googleSignIn.disconnect();
     await _setCurrentUser(null);
+    FilesBinding.instance.photosFile.deleteSync(recursive: true);
+    FilesBinding.instance.videosFile.deleteSync(recursive: true);
   }
 
   Future<void> signInSilently() async {
@@ -77,7 +80,9 @@ mixin AuthBinding on AppBindingBase {
   }
 
   Future<void> renewExpiredAuthToken() async {
-    assert(_googleSignIn.currentUser != null);
+    if (!isSignedIn) {
+      throw StateError('No current user');
+    }
     // This will force the retrieval of new OAuth tokens.
     await _googleSignIn.currentUser?.authentication;
     if (_onAuthTokensRenewed != null) {
