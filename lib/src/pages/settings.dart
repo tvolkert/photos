@@ -4,14 +4,15 @@ import 'package:flutter/material.dart' show CircleAvatar, CircularProgressIndica
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:photos/src/model/auth.dart';
 
 import '../model/app.dart';
+import '../model/auth.dart';
 import '../model/photos_library_api_model.dart';
 
 @pragma('vm:entry-point')
 void settingsMain() async {
   await AppBinding.ensureInitialized();
+  // ignore: unused_local_variable
   final PhotosLibraryApiModel apiModel = PhotosLibraryApiModel();
   AuthBinding.instance.signInSilently();
   runApp(const SettingsApp());
@@ -19,6 +20,12 @@ void settingsMain() async {
 
 class SettingsApp extends StatelessWidget {
   const SettingsApp({super.key});
+
+  static const Map<ShortcutActivator, Intent> _settingsShortcuts = <ShortcutActivator, Intent>{
+    SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
+    SingleActivator(LogicalKeyboardKey.arrowRight): ActivateIntent(),
+    SingleActivator(LogicalKeyboardKey.tab): ActivateIntent(),
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -35,9 +42,14 @@ class SettingsApp extends StatelessWidget {
       return true;
     }());
     return Shortcuts(
-      shortcuts: WidgetsApp.defaultShortcuts,
+      shortcuts: {
+        ...WidgetsApp.defaultShortcuts,
+        ..._settingsShortcuts,
+      },
       child: Actions(
-        actions: WidgetsApp.defaultActions,
+        actions: <Type, Action<Intent>>{
+          ...WidgetsApp.defaultActions,
+        },
         child: Localizations(
           delegates: const [DefaultWidgetsLocalizations.delegate],
           locale: const Locale('en'),
@@ -78,16 +90,36 @@ class SettingsNav extends StatefulWidget {
 }
 
 abstract class SettingsNavController {
+  /// Whether it is legal to call [forward].
   bool get canMoveForward;
-  bool get canMoveBackward;
-  void forward();
-  void backward();
-  void setNext(Widget child);
-  void removeNext();
-}
 
-extension IsNotAnimating on AnimationController {
-  bool get isNotAnimating => !isAnimating;
+  /// Whether it is legal to call [backward].
+  bool get canMoveBackward;
+
+  /// Moves the current entry forward (to what was the next entry).
+  ///
+  /// This will also cause the new current entry to gain the focus.
+  Future<void> forward();
+
+  /// Moves the current entry backward (to what was the previous entry).
+  ///
+  /// This will first call [clearNext], such that after moving backward, there
+  /// is only one entry after the current entry.
+  ///
+  /// This will also cause the new current entry to gain the focus.
+  Future<void> backward();
+
+  /// Sets the next entry (the one after the current entry).
+  ///
+  /// If there are any entries after the first entry, they will first be removed
+  /// and disposed of, then the new entry will be added to the end of the list.
+  void setNext(Widget child);
+
+  /// Removes all entries after the current entry.
+  ///
+  /// If there are no entries after the current entry (i.e. [canMoveForward])
+  /// is false), then this has no effect.
+  void clearNext();
 }
 
 class SettingsNavEntry {
@@ -95,79 +127,93 @@ class SettingsNavEntry {
 
   final Widget child;
   final FocusNode focusNode;
-
-  void dispose() {
-    focusNode.dispose();
-  }
 }
 
-class _SettingsNavState extends State<SettingsNav> with SingleTickerProviderStateMixin implements SettingsNavController {
+class _SettingsNavState extends State<SettingsNav> implements SettingsNavController {
+  Completer<void>? _completer;
   final List<SettingsNavEntry> _entries = <SettingsNavEntry>[];
   late int _currentIndex;
 
   static const double _splitRatio = 0.58;
 
-  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
-    KeyEventResult result = KeyEventResult.ignored;
-    if (event is KeyDownEvent) {
-      if (event.logicalKey == LogicalKeyboardKey.arrowLeft && canMoveBackward) {
-        backward();
-      } else if (event.logicalKey == LogicalKeyboardKey.arrowRight && canMoveForward) {
-        forward();
-      }
+  void _focusCurrentEntry() {
+    _entries[_currentIndex].focusNode.nextFocus();
+  }
+
+  void _handleDoneScrolling() {
+    assert(_completer != null);
+    _completer!.complete();
+    _completer = null;
+  }
+
+  bool get isScrolling => _completer != null;
+
+  bool get isNotScrolling => !isScrolling;
+
+  bool get nextEntriesExist => _currentIndex < _entries.length - 1;
+
+  bool get previousEntriesExist => _currentIndex > 0;
+
+  void clearWhile(bool Function() test) {
+    while (test()) {
+      setState(() {
+        _entries.removeLast();
+      });
     }
-    return result;
   }
 
   @override
-  bool get canMoveForward => _currentIndex < _entries.length - 1;
+  bool get canMoveForward => isNotScrolling && nextEntriesExist;
 
   @override
-  bool get canMoveBackward => _currentIndex > 0;
+  bool get canMoveBackward => isNotScrolling && previousEntriesExist;
 
   @override
-  void forward() {
+  Future<void> forward() {
     assert(canMoveForward);
+    _completer = Completer<void>();
     setState(() {
       _currentIndex++;
-      _entries[_currentIndex].focusNode.nextFocus();
+      _focusCurrentEntry();
     });
+    return _completer!.future;
   }
 
   @override
-  void backward() {
-    assert(_currentIndex > 0);
-    if (_entries.length > _currentIndex + 1) {
-      removeNext();
-    }
+  Future<void> backward() {
+    assert(canMoveBackward);
+    _completer = Completer<void>();
     setState(() {
       _currentIndex--;
-      _entries[_currentIndex].focusNode.nextFocus();
+      _focusCurrentEntry();
+    });
+    return _completer!.future.then((_) {
+      bool pending = true;
+      clearWhile(() {
+        bool result = pending;
+        pending = false;
+        return result;
+      });
     });
   }
 
   @override
   void setNext(Widget child) {
-    assert(_entries.length > _currentIndex);
+    assert(_currentIndex < _entries.length);
     setState(() {
       final SettingsNavEntry entry = SettingsNavEntry(child);
-      if (_entries.length > _currentIndex + 1) {
-        _entries[_currentIndex + 1] = entry;
-      } else {
+      if (_currentIndex == _entries.length - 1) {
         _entries.add(entry);
+      } else {
+        assert(_currentIndex + 1 < _entries.length);
+        _entries[_currentIndex + 1] = entry;
       }
     });
   }
 
   @override
-  void removeNext() {
-    assert(_entries.length > _currentIndex + 1);
-    setState(() {
-      while (_entries.length > _currentIndex + 1) {
-        final SettingsNavEntry entry = _entries.removeLast();
-        entry.dispose();
-      }
-    });
+  void clearNext() {
+    clearWhile(() => nextEntriesExist);
   }
 
   @override
@@ -178,18 +224,11 @@ class _SettingsNavState extends State<SettingsNav> with SingleTickerProviderStat
   }
 
   @override
-  void dispose() {
-    for (SettingsNavEntry entry in _entries) {
-      entry.dispose();
-    }
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return _SettingsNavScope(
       state: this,
       child: SettingsNavScroller(
+        onDoneScrolling: _handleDoneScrolling,
         selectedIndex: _currentIndex,
         child: SettingsNavChildren(
           index: _currentIndex,
@@ -276,6 +315,20 @@ class SettingsNavPaneState extends AnimatedWidgetBaseState<SettingsNavPane> {
   static const EdgeInsets _defaultPadding = EdgeInsets.zero;
 
   @override
+  void didUpdateWidget(covariant SettingsNavPane oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.focusNode != oldWidget.focusNode) {
+      oldWidget.focusNode.dispose();
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     EdgeInsets padding = const EdgeInsets.fromLTRB(65, 68, 30, 60);
     padding += _edgeInsetsTween!.evaluate(animation);
@@ -315,7 +368,12 @@ class SettingsNavScroller extends ImplicitlyAnimatedWidget {
     super.key,
     required this.selectedIndex,
     required this.child,
-  }) : super(duration: SettingsNav.animationDuration, curve: SettingsNav.animationCurve);
+    VoidCallback? onDoneScrolling,
+  }) : super(
+    duration: SettingsNav.animationDuration,
+    curve: SettingsNav.animationCurve,
+    onEnd: onDoneScrolling,
+  );
 
   final int selectedIndex;
   final Widget? child;
@@ -523,6 +581,9 @@ class _AccountsPageState extends State<AccountsPage> {
             onGoForward: () {
               AuthBinding.instance.signIn();
             },
+            onGainsFocus: () {
+              SettingsNav.of(context).setNext(SettingsPlaceholder());
+            },
           ),
         ],
       ],
@@ -531,43 +592,16 @@ class _AccountsPageState extends State<AccountsPage> {
   }
 }
 
-// class SettingsPage extends StatefulWidget {
-//   const SettingsPage({super.key});
+class SettingsPlaceholder extends StatelessWidget {
+  const SettingsPlaceholder({super.key});
 
-//   @override
-//   State<SettingsPage> createState() => _SettingsPageState();
-// }
-
-// class _SettingsPageState extends State<SettingsPage> {
-//   @override
-//   Widget build(BuildContext context) {
-//     return const Row(
-//       crossAxisAlignment: CrossAxisAlignment.stretch,
-//       children: [
-//         Expanded(
-//           flex: 583,
-//           child: ColoredBox(
-//             color: Color(0xff1f232b),
-//             child: Padding(
-//               padding: EdgeInsets.fromLTRB(128, 68, 110, 60),
-//               child: Foo(),
-//             ),
-//           ),
-//         ),
-//         Expanded(
-//           flex: 417,
-//           child: ColoredBox(
-//             color: Color(0xff20252e),
-//             child: Padding(
-//               padding: EdgeInsets.fromLTRB(65, 68, 30, 60),
-//               child: Bar(),
-//             ),
-//           ),
-//         ),
-//       ],
-//     );
-//   }
-// }
+  @override
+  Widget build(BuildContext context) {
+    return const ColoredBox(
+      color: SettingsNav.secondaryBgColor,
+    );
+  }
+}
 
 class Setting extends StatefulWidget {
   const Setting({
