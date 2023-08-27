@@ -8,7 +8,16 @@ import 'src/pages/app.dart';
 import 'src/pages/settings.dart';
 
 @pragma('vm:entry-point')
-void main() => settingsMain();
+void settingsMain() => main();
+
+@pragma('vm:entry-point')
+void main() async {
+  await AppBinding.ensureInitialized();
+  // ignore: unused_local_variable
+  final PhotosLibraryApiModel apiModel = PhotosLibraryApiModel();
+  AuthBinding.instance.signInSilently();
+  runApp(const SettingsApp());
+}
 
 @pragma('vm:entry-point')
 void dream() async {

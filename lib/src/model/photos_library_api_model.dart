@@ -197,15 +197,15 @@ class PhotosLibraryApiModel extends ChangeNotifier {
         debugPrint('Loaded $count items...');
         try {
           final ListMediaItemsResponse response = await _listMediaItems(nextPageToken);
-          if (response.mediaItems.isEmpty && count == 0) {
+          if (response.mediaItemsOrEmpty.isEmpty && count == 0) {
             // Special case of an empty photo library.
             await tmpPhotoFile.create();
             await tmpVideoFile.create();
             break;
           }
-          await _appendPhotosToFile(tmpPhotoFile, response.mediaItems);
-          await _appendVideosToFile(tmpVideoFile, response.mediaItems);
-          count += response.mediaItems.length;
+          await _appendPhotosToFile(tmpPhotoFile, response.mediaItemsOrEmpty);
+          await _appendVideosToFile(tmpVideoFile, response.mediaItemsOrEmpty);
+          count += response.mediaItemsOrEmpty.length;
           nextPageToken = response.nextPageToken;
         } on PhotosApiException catch (error) {
           if (error.statusCode == HttpStatus.tooManyRequests) {

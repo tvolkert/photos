@@ -9,8 +9,8 @@ part of 'list_media_items_response.dart';
 ListMediaItemsResponse _$ListMediaItemsResponseFromJson(
         Map<String, dynamic> json) =>
     ListMediaItemsResponse(
-      mediaItems: (json['mediaItems'] as List<dynamic>)
-          .map((e) => MediaItem.fromJson(e as Map<String, dynamic>))
+      mediaItems: (json['mediaItems'] as List<dynamic>?)
+          ?.map((e) => MediaItem.fromJson(e as Map<String, dynamic>))
           .toList(),
       nextPageToken: json['nextPageToken'] as String?,
     );

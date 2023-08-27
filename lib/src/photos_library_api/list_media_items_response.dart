@@ -12,6 +12,8 @@ class ListMediaItemsResponse {
 
   Map<String, dynamic> toJson() => _$ListMediaItemsResponseToJson(this);
 
-  List<MediaItem> mediaItems;
+  List<MediaItem> get mediaItemsOrEmpty => mediaItems ?? <MediaItem>[];
+
+  List<MediaItem>? mediaItems;
   String? nextPageToken;
 }
