@@ -5,18 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
-import '../model/app.dart';
 import '../model/auth.dart';
-import '../model/photos_library_api_model.dart';
-
-@pragma('vm:entry-point')
-void settingsMain() async {
-  await AppBinding.ensureInitialized();
-  // ignore: unused_local_variable
-  final PhotosLibraryApiModel apiModel = PhotosLibraryApiModel();
-  AuthBinding.instance.signInSilently();
-  runApp(const SettingsApp());
-}
 
 class SettingsApp extends StatelessWidget {
   const SettingsApp({super.key});
