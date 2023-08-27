@@ -21,6 +21,11 @@ class PhotosApiException implements Exception {
 
   /// The body of the response that the server responded with.
   String get responseBody => response.body;
+
+  @override
+  String toString() {
+    return '$runtimeType[$statusCode]($responseBody)';
+  }
 }
 
 class GetMediaItemException extends PhotosApiException {

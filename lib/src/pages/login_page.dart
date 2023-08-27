@@ -89,51 +89,43 @@ class _LoginPageState extends State<LoginPage> {
           ),
         },
         child: SizedBox.expand(
-          child: Row(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Flexible(
-                flex: 2,
                 fit: FlexFit.tight,
                 child: ColoredBox(
                   color: Color(0xff000000),
                   child: AssetPhotosMontageContainer(),
                 ),
               ),
-              Flexible(
-                flex: 1,
-                fit: FlexFit.tight,
-                child: ColoredBox(
-                  color: const Color(0xfff3eff3),
-                  child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(25),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: <Widget>[
-                          Container(
-                            padding: const EdgeInsets.all(30),
-                            child: const Text(
-                              'To be able to show your personal photos, you must sign in to Google Photos',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontWeight: FontWeight.w500,
-                                color: Color(0x99000000),
-                              ),
+              ColoredBox(
+                color: const Color(0xfff3eff3),
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        const Text(
+                          'To be able to show your personal photos, you must sign in to Google Photos.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w500,
+                            color: Color(0x99000000),
+                          ),
+                        ),
+                        if (isInteractive) LoginButton(globalKey: globalKey, focusNode: focusNode),
+                        if (!isInteractive)
+                          const Text(
+                            'Open System Screensaver Settings for this screensaver to sign in to Google Photos.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w500,
+                              color: Color(0x99000000),
                             ),
                           ),
-                          if (isInteractive) LoginButton(globalKey: globalKey, focusNode: focusNode),
-                          if (!isInteractive)
-                            const Text(
-                              'To sign in to Google Photos, launch this app from your home screen',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontWeight: FontWeight.w500,
-                                color: Color(0x99000000),
-                              ),
-                            ),
-                        ],
-                      ),
+                      ],
                     ),
                   ),
                 ),

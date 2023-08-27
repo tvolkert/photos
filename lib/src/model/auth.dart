@@ -5,7 +5,8 @@ import 'package:photos/src/model/files.dart';
 
 import 'app.dart';
 
-typedef PostSignInCallback = Future<void> Function();
+typedef OnAuthenticationActionCallback = Future<void> Function(GoogleSignInAccount? previousUser);
+typedef OnAuthTokensRenewedCallback = Future<void> Function();
 
 mixin AuthBinding on AppBindingBase {
   /// The singleton instance of this object.
@@ -21,23 +22,23 @@ mixin AuthBinding on AppBindingBase {
   Future<void> _setCurrentUser(GoogleSignInAccount? user) async {
     GoogleSignInAccount? previousUser = _currentUser;
     _currentUser = user;
-    if (user != previousUser && _onUserChanged != null) {
-      await _onUserChanged!();
+    if (_onAuthenticationAction != null) {
+      await _onAuthenticationAction!(previousUser);
     }
   }
 
   /// Callback that runs when the current user has changed, either by sign-in
   /// or sign-out.
-  PostSignInCallback? _onUserChanged;
-  PostSignInCallback? get onUserChanged => _onUserChanged;
-  set onUserChanged(PostSignInCallback? callback) {
-    _onUserChanged = callback;
+  OnAuthenticationActionCallback? _onAuthenticationAction;
+  OnAuthenticationActionCallback? get onAuthenticationAction => _onAuthenticationAction;
+  set onAuthenticationAction(OnAuthenticationActionCallback? callback) {
+    _onAuthenticationAction = callback;
   }
 
   /// Callback that runs when the current user renews their auth tokens.
-  PostSignInCallback? _onAuthTokensRenewed;
-  PostSignInCallback? get onAuthTokensRenewed => _onAuthTokensRenewed;
-  set onAuthTokensRenewed(PostSignInCallback? callback) {
+  OnAuthTokensRenewedCallback? _onAuthTokensRenewed;
+  OnAuthTokensRenewedCallback? get onAuthTokensRenewed => _onAuthTokensRenewed;
+  set onAuthTokensRenewed(OnAuthTokensRenewedCallback? callback) {
     _onAuthTokensRenewed = callback;
   }
 
@@ -70,8 +71,12 @@ mixin AuthBinding on AppBindingBase {
   Future<void> signOut() async {
     await _googleSignIn.disconnect();
     await _setCurrentUser(null);
-    FilesBinding.instance.photosFile.deleteSync(recursive: true);
-    FilesBinding.instance.videosFile.deleteSync(recursive: true);
+    if (FilesBinding.instance.photosFile.existsSync()) {
+      FilesBinding.instance.photosFile.deleteSync(recursive: true);
+    }
+    if (FilesBinding.instance.videosFile.existsSync()) {
+      FilesBinding.instance.videosFile.deleteSync(recursive: true);
+    }
   }
 
   Future<void> signInSilently() async {

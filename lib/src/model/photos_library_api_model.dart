@@ -4,6 +4,7 @@ import 'dart:math' as math;
 
 import 'package:file/file.dart';
 import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'package:photos/src/model/auth.dart';
 
@@ -65,7 +66,7 @@ class PhotosLibraryApiModel extends ChangeNotifier {
   PhotosLibraryApiClient? _client;
 
   PhotosLibraryApiModel() {
-    AuthBinding.instance.onUserChanged = _handleCurrentUserChanged;
+    AuthBinding.instance.onAuthenticationAction = _handleAuthenticationAction;
     AuthBinding.instance.onAuthTokensRenewed = _handleAuthTokensRenewed;
   }
 
@@ -77,9 +78,8 @@ class PhotosLibraryApiModel extends ChangeNotifier {
   /// See also:
   ///
   ///  * [populateDatabase], which updates the database files.
-  Future<void> _handleCurrentUserChanged() async {
+  Future<void> _handleAuthenticationAction(GoogleSignInAccount? previousUser) async {
     final AuthBinding auth = AuthBinding.instance;
-    debugPrint('Current user changed; isSignedIn=${auth.isSignedIn}; user=${auth.maybeUser}');
     PhotosLibraryApiState newState;
     if (!auth.isSignedIn) {
       newState = PhotosLibraryApiState.unauthenticated;

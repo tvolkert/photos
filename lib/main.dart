@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart' show CircularProgressIndicator;
 
 import 'src/model/app.dart';
 import 'src/model/auth.dart';
@@ -13,9 +14,8 @@ void settingsMain() => main();
 @pragma('vm:entry-point')
 void main() async {
   await AppBinding.ensureInitialized();
-  // ignore: unused_local_variable
-  final PhotosLibraryApiModel apiModel = PhotosLibraryApiModel();
-  AuthBinding.instance.signInSilently();
+  runApp(const LoadingScreen());
+  await AuthBinding.instance.signInSilently();
   runApp(const SettingsApp());
 }
 
@@ -31,4 +31,18 @@ void dream() async {
       child: const HomePage(),
     ),
   );
+}
+
+class LoadingScreen extends StatelessWidget {
+  const LoadingScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const ColoredBox(
+      color: SettingsNav.defaultBgColor,
+      child: Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+  }
 }

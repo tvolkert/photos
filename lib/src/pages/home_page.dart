@@ -11,7 +11,8 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    switch (PhotosApp.of(context).apiModel.state) {
+    final PhotosLibraryApiState state = PhotosApp.of(context).apiModel.state;
+    switch (state) {
       case PhotosLibraryApiState.pendingAuthentication:
         // Show a blank screen while we try to non-interactively sign in.
         return Container();
