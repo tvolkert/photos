@@ -23,7 +23,7 @@
         android:allowBackup="false"
         android:banner="@mipmap/photos_banner"
         android:icon="@mipmap/ic_launcher"
-        android:label="photos"
+        android:label="Photos Montage"
         android:requestLegacyExternalStorage="true">
         <activity
             android:name=".SettingsActivity"
