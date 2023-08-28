@@ -6,8 +6,10 @@ import 'package:file/file.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
-import 'package:photos/src/model/auth.dart';
 
+import '../model/auth.dart';
+import '../model/ui.dart';
+import '../pages/app.dart';
 import '../photos_library_api/batch_get_request.dart';
 import '../photos_library_api/batch_get_response.dart';
 import '../photos_library_api/exceptions.dart';
@@ -115,8 +117,16 @@ class PhotosLibraryApiModel extends ChangeNotifier {
 
   /// Refresh the database files.
   void _refreshDatabaseFiles() {
-    populateDatabase().catchError((dynamic error, StackTrace stackTrace) {
+    UiBinding.instance.controller?.setLibraryUpdateStatus(PhotosLibraryUpdateStatus.updating);
+    populateDatabase().then((value) {
+      UiBinding.instance.controller?.setLibraryUpdateStatus(PhotosLibraryUpdateStatus.success);
+    }).catchError((dynamic error, StackTrace stackTrace) {
+      UiBinding.instance.controller?.setLibraryUpdateStatus(PhotosLibraryUpdateStatus.error);
       debugPrint('$error\n$stackTrace');
+    }).whenComplete(() {
+      Timer(const Duration(seconds: 30), () {
+        UiBinding.instance.controller?.setLibraryUpdateStatus(PhotosLibraryUpdateStatus.idle);
+      });
     });
   }
 

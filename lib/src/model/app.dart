@@ -6,8 +6,9 @@ import 'package:photos/src/model/dream.dart';
 
 import 'auth.dart';
 import 'files.dart';
+import 'ui.dart';
 
-class AppBinding extends AppBindingBase with FilesBinding, DreamBinding, AuthBinding {
+class AppBinding extends AppBindingBase with FilesBinding, DreamBinding, AuthBinding, UiBinding {
   /// Creates and initializes the application binding if necessary.
   ///
   /// Applications should call this method before calling [runApp].
