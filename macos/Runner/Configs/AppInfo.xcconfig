@@ -5,10 +5,10 @@
 // 'flutter create' template.
 
 // The application's name. By default this is also the title of the Flutter window.
-PRODUCT_NAME = photos
+PRODUCT_NAME = Photos Screensaver
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.stefaney.photos
+PRODUCT_BUNDLE_IDENTIFIER = dev.tvolkert.photos
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2022 com.stefaney. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2023 tvolkert.dev. All rights reserved.

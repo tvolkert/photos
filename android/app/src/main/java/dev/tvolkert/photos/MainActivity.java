@@ -1,4 +1,4 @@
-package com.stefaney.photos;
+package dev.tvolkert.photos;
 
 import android.os.Bundle;
 import android.view.WindowManager;

@@ -1,4 +1,4 @@
-package com.stefaney.photos;
+package dev.tvolkert.photos;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -42,7 +42,7 @@ import io.flutter.plugin.common.MethodChannel;
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR1)
 public class PhotosChannel {
     private static final String TAG = "flutter";
-    private static final String CHANNEL_NAME = "photos.stefaney.com/channel";
+    private static final String CHANNEL_NAME = "photos.tvolkert.dev/channel";
     private static final String METHOD_NAME_WAKE_UP = "wakeUp";
     private static final String METHOD_NAME_WRITE_FILE_TO_DOWNLOADS = "writeFileToDownloads";
     private static final String METHOD_NAME_GET_DEVICE_INFO = "getDeviceInfo";

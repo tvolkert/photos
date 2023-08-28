@@ -1,4 +1,4 @@
-package com.stefaney.photos;
+package dev.tvolkert.photos;
 
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageInfo;

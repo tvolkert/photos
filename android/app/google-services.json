@@ -10,7 +10,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:580610127220:android:e34c4e7bad5c244a",
         "android_client_info": {
-          "package_name": "com.stefaney.photos"
+          "package_name": "dev.tvolkert.photos"
         }
       },
       "oauth_client": [
@@ -18,7 +18,7 @@
           "client_id": "580610127220-mjbgpmuomu49a5pkq1vb2bsjvkro3quv.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.stefaney.photos",
+            "package_name": "dev.tvolkert.photos",
             "certificate_hash": "90e6c0acc63a8a9a147f6b093eb3810699d7fbc4"
           }
         },
@@ -43,7 +43,7 @@
               "client_id": "580610127220-mp0dcf6lv4u87b6trap32nefms4t1ir0.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "com.stefaney.photos"
+                "bundle_id": "dev.tvolkert.photos"
               }
             }
           ]

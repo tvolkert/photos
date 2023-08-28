@@ -8,7 +8,7 @@ mixin DreamBinding on AppBindingBase {
   static late DreamBinding _instance;
   static DreamBinding get instance => _instance;
 
-  static const _channel = MethodChannel('photos.stefaney.com/channel');
+  static const _channel = MethodChannel('photos.tvolkert.dev/channel');
 
   Future<void> wakeUp() async {
     try {

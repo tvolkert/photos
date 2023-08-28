@@ -1,4 +1,4 @@
-package com.stefaney.photos;
+package dev.tvolkert.photos;
 
 import android.annotation.TargetApi;
 import android.os.Build;
