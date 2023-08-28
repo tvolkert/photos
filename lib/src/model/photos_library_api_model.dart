@@ -204,6 +204,7 @@ class PhotosLibraryApiModel extends ChangeNotifier {
       String? nextPageToken;
       int count = 0;
       while (count == 0 || nextPageToken != null) {
+        UiBinding.instance.controller?.setLibraryUpdateMessage('Retrieved $count photos...');
         debugPrint('Loaded $count items...');
         try {
           final ListMediaItemsResponse response = await _listMediaItems(nextPageToken);

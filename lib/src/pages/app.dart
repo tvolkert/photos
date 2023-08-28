@@ -55,8 +55,12 @@ abstract class PhotosAppController {
   /// Errors wll only be shown to the user in debug mode.
   void addError(Object error, StackTrace? stack);
 
-  /// Sets whether the photos library is currently updating.
+  /// Sets the current state of the photos library update.
   void setLibraryUpdateStatus(PhotosLibraryUpdateStatus status);
+
+  /// Sets a message to display to the user containing the current status of
+  /// the library update.
+  void setLibraryUpdateMessage(String message);
 }
 
 enum PhotosLibraryUpdateStatus {
@@ -76,6 +80,7 @@ enum PhotosLibraryUpdateStatus {
 class _PhotosAppState extends State<PhotosApp> implements PhotosAppController {
   bool _showDebugInfo = false;
   PhotosLibraryUpdateStatus _updateStatus = PhotosLibraryUpdateStatus.idle;
+  String? _updateMessage;
   final List<(Object, StackTrace?)> _errors = <(Object, StackTrace?)>[];
 
   void _removeLastError() {
@@ -143,6 +148,13 @@ class _PhotosAppState extends State<PhotosApp> implements PhotosAppController {
   }
 
   @override
+  void setLibraryUpdateMessage(String message) {
+    setState(() {
+      _updateMessage = message;
+    });
+  }
+
+  @override
   void initState() {
     super.initState();
     UiBinding.instance.controller = this;
@@ -177,7 +189,7 @@ class _PhotosAppState extends State<PhotosApp> implements PhotosAppController {
                 children: <Widget>[
                   KeyPressHandler(child: widget.child),
                   if (_errors.isNotEmpty) ErrorDisplay(errors: _errors),
-                  UpdateStatus(status: _updateStatus),
+                  UpdateStatus(status: _updateStatus, message: _updateMessage),
                   if (isShowDebugInfo) const _DebugInfo(),
                 ],
               ),
@@ -193,9 +205,11 @@ class UpdateStatus extends StatefulWidget {
   const UpdateStatus({
     super.key,
     required this.status,
+    this.message,
   });
 
   final PhotosLibraryUpdateStatus status;
+  final String? message;
 
   @override
   State<StatefulWidget> createState() => UpdateStatusState();
@@ -243,7 +257,10 @@ class UpdateStatusState extends State<UpdateStatus> {
             backgroundColor: Color(0xff000000),
           ),
         );
-        text = 'Updating the photos library. This may take a while...';
+        text = 'Updating the photos library. This may take a while.';
+        if (widget.message != null) {
+          text += ' ${widget.message}';
+        }
         break;
       case PhotosLibraryUpdateStatus.success:
         icon = const Icon(Icons.check_circle, color: Color(0xff00cc00));
