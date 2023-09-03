@@ -8,11 +8,15 @@ mixin UiBinding on AppBindingBase {
   static late UiBinding _instance;
   static UiBinding get instance => _instance;
 
-  PhotosAppController? _controller;
-  PhotosAppController? get controller => _controller;
-  set controller(PhotosAppController? value) {
+  AppController? _controller;
+  AppController? get controller => _controller;
+  set controller(AppController? value) {
     assert(_controller == null || value == null);
     _controller = value;
+  }
+
+  T? getTypedController<T extends AppController>() {
+    return _controller as T?;
   }
 
   @override

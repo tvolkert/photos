@@ -5,7 +5,12 @@ import 'package:flutter/widgets.dart';
 import '../model/dream.dart';
 
 /// Whether to always show debug info in the photos app.
-const forceShowDebugInfo = false;
+const bool forceShowDebugInfo = false;
+
+/// Whether to show errors to the user in release mode.
+///
+/// If this is false, errors will be displayed in debug mode only.
+const bool showErrorsInReleaseMode = true;
 
 class DebugInfo extends StatefulWidget {
   const DebugInfo({super.key});

@@ -117,15 +117,16 @@ class PhotosLibraryApiModel extends ChangeNotifier {
 
   /// Refresh the database files.
   void _refreshDatabaseFiles() {
-    UiBinding.instance.controller?.setLibraryUpdateStatus((PhotosLibraryUpdateStatus.updating, null));
+    final PhotosAppController? app = UiBinding.instance.getTypedController();
+    app?.setLibraryUpdateStatus((PhotosLibraryUpdateStatus.updating, null));
     populateDatabase().then((value) {
-      UiBinding.instance.controller?.setLibraryUpdateStatus((PhotosLibraryUpdateStatus.success, null));
+      app?.setLibraryUpdateStatus((PhotosLibraryUpdateStatus.success, null));
     }).catchError((dynamic error, StackTrace stackTrace) {
-      UiBinding.instance.controller?.setLibraryUpdateStatus((PhotosLibraryUpdateStatus.error, '$error'));
+      app?.setLibraryUpdateStatus((PhotosLibraryUpdateStatus.error, '$error'));
       debugPrint('$error\n$stackTrace');
     }).whenComplete(() {
       Timer(const Duration(seconds: 30), () {
-        UiBinding.instance.controller?.setLibraryUpdateStatus((PhotosLibraryUpdateStatus.idle, null));
+        app?.setLibraryUpdateStatus((PhotosLibraryUpdateStatus.idle, null));
       });
     });
   }
@@ -189,6 +190,7 @@ class PhotosLibraryApiModel extends ChangeNotifier {
   /// data is older than [maxStaleness].
   Future<void> populateDatabase() async {
     debugPrint('Reloading photo cache...');
+    final PhotosAppController? app = UiBinding.instance.getTypedController();
     final FilesBinding files = FilesBinding.instance;
     final File tmpPhotoFile = files.photosFile.parent.childFile('${files.photosFile.basename}.tmp');
     final File tmpVideoFile = files.videosFile.parent.childFile('${files.videosFile.basename}.tmp');
@@ -204,7 +206,7 @@ class PhotosLibraryApiModel extends ChangeNotifier {
       String? nextPageToken;
       int count = 0;
       while (count == 0 || nextPageToken != null) {
-        UiBinding.instance.controller?.setLibraryUpdateStatus((
+        app?.setLibraryUpdateStatus((
           PhotosLibraryUpdateStatus.updating,
           'Loaded $count photos...',
         ));

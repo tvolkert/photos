@@ -32,18 +32,7 @@ class PhotosApp extends StatefulWidget {
   }
 }
 
-/// Instances of this class can be obtained by calling [PhotosApp.of].
-abstract class PhotosAppController {
-  /// The Google Photos API model.
-  PhotosLibraryApiModel get apiModel;
-
-  /// Tells whether this content producer is running in interactive mode.
-  ///
-  /// When interactive mode is false, the app was started automatically (it is
-  /// running as a screensaver), and it is expected that the user is able to
-  /// stop the app with simple keypad interaction.
-  bool get isInteractive;
-
+abstract class AppController {
   /// Tells whether debug info is currently being shown to the user.
   bool get isShowDebugInfo;
 
@@ -52,61 +41,36 @@ abstract class PhotosAppController {
 
   /// Adds an error to the list of errors to possibly show the user.
   ///
-  /// Errors wll only be shown to the user in debug mode.
+  /// If [showErrorsInReleaseMode] is true, then errors will always be shown
+  /// to the user. If it is false, then errors will be shown in debug mode
+  /// only.
   void addError(Object error, StackTrace? stack);
-
-  /// Sets the current state of the photos library update.
-  ///
-  /// If non-null, the `message` may be shown to the user in the status display.
-  void setLibraryUpdateStatus((PhotosLibraryUpdateStatus status, String? message) status);
-
-  /// Sets an optional notification to be shown in the bottom bar.
-  void setBottomBarNotification(Notification? notification);
 }
 
-enum PhotosLibraryUpdateStatus {
-  /// The photos library is up-to-date; no action is being taken.
-  idle,
-
-  /// The photos library is actively updating.
-  updating,
-
-  /// The photos library has recently successfully completed an update.
-  success,
-
-  /// The photos library has recently encountered an error while updating.
-  error,
-}
-
-class _PhotosAppState extends State<PhotosApp> implements PhotosAppController {
+mixin AppControllerMixin<T extends StatefulWidget> on State<T> implements AppController {
   bool _showDebugInfo = false;
-  PhotosLibraryUpdateStatus _updateStatus = PhotosLibraryUpdateStatus.idle;
-  String? _updateMessage;
   final List<(Object, StackTrace?)> _errors = <(Object, StackTrace?)>[];
-  Notification? _bottomBarNotification;
 
   void _removeLastError() {
-    assert(() {
+    void doRemoveLastError() {
       if (mounted && _errors.isNotEmpty) {
         setState(() {
           _errors.removeLast();
         });
       }
-      return true;
-    }());
+    }
+    if (showErrorsInReleaseMode) {
+      doRemoveLastError();
+    } else {
+      assert(() {
+        doRemoveLastError();
+        return true;
+      }());
+    }
   }
 
-  void _handleApiModelUpdate() {
-    setState(() {
-      // no-op; rebuild will pick up the latest api state.
-    });
-  }
-
-  @override
-  PhotosLibraryApiModel get apiModel => widget.apiModel;
-
-  @override
-  bool get isInteractive => widget.interactive;
+  /// A copy of the errors list.
+  List<(Object, StackTrace?)> get errors => _errors.clone();
 
   @override
   bool get isShowDebugInfo {
@@ -131,14 +95,74 @@ class _PhotosAppState extends State<PhotosApp> implements PhotosAppController {
 
   @override
   void addError(Object error, StackTrace? stack) {
-    assert(() {
+    void doAddError() {
       setState(() {
         _errors.insert(0, (error, stack));
         Timer(const Duration(seconds: 10), _removeLastError);
       });
-      return true;
-    }());
+    }
+    if (showErrorsInReleaseMode) {
+      doAddError();
+    } else {
+      assert(() {
+        doAddError();
+        return true;
+      }());
+    }
   }
+}
+
+/// Instances of this class can be obtained by calling [PhotosApp.of].
+abstract class PhotosAppController extends AppController {
+  /// The Google Photos API model.
+  PhotosLibraryApiModel get apiModel;
+
+  /// Tells whether this content producer is running in interactive mode.
+  ///
+  /// When interactive mode is false, the app was started automatically (it is
+  /// running as a screensaver), and it is expected that the user is able to
+  /// stop the app with simple keypad interaction.
+  bool get isInteractive;
+
+  /// Sets the current state of the photos library update.
+  ///
+  /// If non-null, the `message` may be shown to the user in the status display.
+  void setLibraryUpdateStatus((PhotosLibraryUpdateStatus status, String? message) status);
+
+  /// Sets an optional notification to be shown in the bottom bar.
+  void setBottomBarNotification(Notification? notification);
+}
+
+enum PhotosLibraryUpdateStatus {
+  /// The photos library is up-to-date; no action is being taken.
+  idle,
+
+  /// The photos library is actively updating.
+  updating,
+
+  /// The photos library has recently successfully completed an update.
+  success,
+
+  /// The photos library has recently encountered an error while updating.
+  error,
+}
+
+class _PhotosAppState extends State<PhotosApp> with AppControllerMixin<PhotosApp> implements PhotosAppController {
+  PhotosLibraryUpdateStatus _updateStatus = PhotosLibraryUpdateStatus.idle;
+  String? _updateMessage;
+  Notification? _bottomBarNotification;
+
+  void _handleApiModelUpdate() {
+    setState(() {
+      // no-op; rebuild will pick up the latest api state.
+    });
+  }
+
+  @override
+  PhotosLibraryApiModel get apiModel => widget.apiModel;
+
+  @override
+  bool get isInteractive => widget.interactive;
 
   @override
   void setLibraryUpdateStatus((PhotosLibraryUpdateStatus, String?) status) {
@@ -177,7 +201,7 @@ class _PhotosAppState extends State<PhotosApp> implements PhotosAppController {
     return _PhotosAppScope(
       state: this,
       apiState: widget.apiModel.state,
-      isShowDebugInfo: _showDebugInfo,
+      isShowDebugInfo: isShowDebugInfo,
       child: MediaQuery.fromView(
         view: View.of(context),
         child: Directionality(
@@ -193,7 +217,7 @@ class _PhotosAppState extends State<PhotosApp> implements PhotosAppController {
                 children: <Widget>[
                   KeyPressHandler(child: widget.child),
                   NotificationsPanel(
-                    upperLeft: ErrorsNotification(_errors.clone()),
+                    upperLeft: ErrorsNotification(errors),
                     upperRight: UpdateStatusNotification(_updateStatus, _updateMessage),
                     bottomBar: _bottomBarNotification,
                   ),

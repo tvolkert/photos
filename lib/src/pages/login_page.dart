@@ -91,11 +91,24 @@ class NeedToLoginNotification extends Notification {
 
 class _LoginPageState extends State<LoginPage> {
   @override
+  void initState() {
+    super.initState();
+    SchedulerBinding.instance.addPostFrameCallback((Duration timeStamp) {
+      final PhotosAppController app = PhotosApp.of(context);
+      app.setBottomBarNotification(NeedToLoginNotification(isInteractive: app.isInteractive));
+    });
+  }
+
+  @override
+  void dispose() {
+    PhotosApp.of(context).setBottomBarNotification(null);
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final bool isInteractive = PhotosApp.of(context).isInteractive;
     return Shortcuts(
       shortcuts: <LogicalKeySet, Intent>{
-        // LogicalKeySet(LogicalKeyboardKey.arrowRight): const NextFocusIntent(),
         LogicalKeySet(LogicalKeyboardKey.space): LoginAction.intent,
         LogicalKeySet(LogicalKeyboardKey.select): LoginAction.intent,
       },
@@ -107,25 +120,10 @@ class _LoginPageState extends State<LoginPage> {
             onLoginFailure: () => _showSignInError(context),
           ),
         },
-        child: SizedBox.expand(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Flexible(
-                fit: FlexFit.tight,
-                child: ColoredBox(
-                  color: Color(0xff000000),
-                  child: AssetPhotosMontageContainer(),
-                ),
-              ),
-              ColoredBox(
-                color: const Color(0xfff3eff3),
-                child: Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: NeedToLoginNotification(isInteractive: isInteractive).build(context),
-                ),
-              ),
-            ],
+        child: const SizedBox.expand(
+          child: ColoredBox(
+            color: Color(0xff000000),
+            child: AssetPhotosMontageContainer(),
           ),
         ),
       ),
