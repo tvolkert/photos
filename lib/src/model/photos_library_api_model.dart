@@ -117,15 +117,15 @@ class PhotosLibraryApiModel extends ChangeNotifier {
 
   /// Refresh the database files.
   void _refreshDatabaseFiles() {
-    UiBinding.instance.controller?.setLibraryUpdateStatus(PhotosLibraryUpdateStatus.updating);
+    UiBinding.instance.controller?.setLibraryUpdateStatus((PhotosLibraryUpdateStatus.updating, null));
     populateDatabase().then((value) {
-      UiBinding.instance.controller?.setLibraryUpdateStatus(PhotosLibraryUpdateStatus.success);
+      UiBinding.instance.controller?.setLibraryUpdateStatus((PhotosLibraryUpdateStatus.success, null));
     }).catchError((dynamic error, StackTrace stackTrace) {
-      UiBinding.instance.controller?.setLibraryUpdateStatus(PhotosLibraryUpdateStatus.error);
+      UiBinding.instance.controller?.setLibraryUpdateStatus((PhotosLibraryUpdateStatus.error, '$error'));
       debugPrint('$error\n$stackTrace');
     }).whenComplete(() {
       Timer(const Duration(seconds: 30), () {
-        UiBinding.instance.controller?.setLibraryUpdateStatus(PhotosLibraryUpdateStatus.idle);
+        UiBinding.instance.controller?.setLibraryUpdateStatus((PhotosLibraryUpdateStatus.idle, null));
       });
     });
   }
@@ -204,7 +204,10 @@ class PhotosLibraryApiModel extends ChangeNotifier {
       String? nextPageToken;
       int count = 0;
       while (count == 0 || nextPageToken != null) {
-        UiBinding.instance.controller?.setLibraryUpdateMessage('Retrieved $count photos...');
+        UiBinding.instance.controller?.setLibraryUpdateStatus((
+          PhotosLibraryUpdateStatus.updating,
+          'Loaded $count photos...',
+        ));
         debugPrint('Loaded $count items...');
         try {
           final ListMediaItemsResponse response = await _listMediaItems(nextPageToken);

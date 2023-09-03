@@ -22,6 +22,14 @@
             "certificate_hash": "90e6c0acc63a8a9a147f6b093eb3810699d7fbc4"
           }
         },
+	{
+          "client_id": "580610127220-1cauja0jirfmjbl9pktejh4c4pflerbe.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "dev.tvolkert.photos",
+            "certificate_hash": "8d6b392a9cf5a9ef8f70a87d977e2d338f280b5a"
+          }
+	},
         {
           "client_id": "580610127220-jqe159m817105q5lubhv26uked8pvq04.apps.googleusercontent.com",
           "client_type": 3

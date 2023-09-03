@@ -8,11 +8,11 @@ import 'src/pages/home_page.dart';
 import 'src/pages/app.dart';
 import 'src/pages/settings.dart';
 
-@pragma('vm:entry-point')
-void settingsMain() => main();
+/// This exists merely for convenience during development.
+void main() => dream();
 
 @pragma('vm:entry-point')
-void main() async {
+void settingsMain() async {
   await AppBinding.ensureInitialized();
   runApp(const LoadingScreen());
   await AuthBinding.instance.signInSilently();

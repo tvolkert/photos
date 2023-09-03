@@ -1,13 +1,17 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart' show CircleAvatar, CircularProgressIndicator, Icons;
+import 'package:flutter/material.dart' show CircleAvatar, Icons;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import '../extensions/list.dart';
 import '../model/auth.dart';
 
-class SettingsApp extends StatelessWidget {
+import 'debug.dart';
+import 'notifications.dart';
+
+class SettingsApp extends StatefulWidget {
   const SettingsApp({super.key});
 
   static const Map<ShortcutActivator, Intent> _settingsShortcuts = <ShortcutActivator, Intent>{
@@ -17,12 +21,86 @@ class SettingsApp extends StatelessWidget {
   };
 
   @override
+  State<SettingsApp> createState() => _SettingsAppState();
+}
+
+abstract class SettingsAppController {
+  /// Tells whether debug info is currently being shown to the user.
+  bool get isShowDebugInfo;
+
+  /// Toggles whether debug info is shown to the user.
+  void toggleShowDebugInfo();
+
+  /// Adds an error to the list of errors to possibly show the user.
+  ///
+  /// Errors wll only be shown to the user in debug mode.
+  void addError(Object error, StackTrace? stack);
+}
+
+class _SettingsAppState extends State<SettingsApp> implements SettingsAppController {
+  bool _showDebugInfo = false;
+  final List<(Object, StackTrace?)> _errors = <(Object, StackTrace?)>[];
+
+  void _removeLastError() {
+    assert(() {
+      if (mounted && _errors.isNotEmpty) {
+        setState(() {
+          _errors.removeLast();
+        });
+      }
+      return true;
+    }());
+  }
+
+  @override
+  bool get isShowDebugInfo {
+    bool showDebugInfo = _showDebugInfo;
+    assert(() {
+      showDebugInfo |= forceShowDebugInfo;
+      return true;
+    }());
+    return showDebugInfo;
+  }
+
+  @override
+  void toggleShowDebugInfo() {
+    setState(() {
+      _showDebugInfo = !_showDebugInfo;
+      assert(() {
+        debugInvertOversizedImages = !debugInvertOversizedImages;
+        return true;
+      }());
+    });
+  }
+
+  @override
+  void addError(Object error, StackTrace? stack) {
+    assert(() {
+      setState(() {
+        _errors.insert(0, (error, stack));
+        Timer(const Duration(seconds: 10), _removeLastError);
+      });
+      return true;
+    }());
+  }
+
+  @override
   Widget build(BuildContext context) {
-    Widget result = const FocusScope(
-      child: DefaultTextStyle(
-        style: TextStyle(color: Color(0xffffffff)),
-        child: SettingsNav(
-          root: SettingsMainPage(),
+    Widget result = _SettingsAppScope(
+      state: this,
+      isShowDebugInfo: _showDebugInfo,
+      child: FocusScope(
+        child: DefaultTextStyle(
+          style: const TextStyle(color: Color(0xffffffff)),
+          child: Stack(
+            fit: StackFit.passthrough,
+            children: <Widget>[
+              const SettingsNav(root: SettingsMainPage()),
+              NotificationsPanel(
+                upperLeft: ErrorsNotification(_errors.clone()),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -33,7 +111,7 @@ class SettingsApp extends StatelessWidget {
     return Shortcuts(
       shortcuts: {
         ...WidgetsApp.defaultShortcuts,
-        ..._settingsShortcuts,
+        ...SettingsApp._settingsShortcuts,
       },
       child: Actions(
         actions: <Type, Action<Intent>>{
@@ -53,6 +131,22 @@ class SettingsApp extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _SettingsAppScope extends InheritedWidget {
+  const _SettingsAppScope({
+    required this.state,
+    required this.isShowDebugInfo,
+    required Widget child,
+  }) : super(child: child);
+
+  final _SettingsAppState state;
+  final bool isShowDebugInfo;
+
+  @override
+  bool updateShouldNotify(_SettingsAppScope old) {
+    return isShowDebugInfo != old.isShowDebugInfo;
   }
 }
 

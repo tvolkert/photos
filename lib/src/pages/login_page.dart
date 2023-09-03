@@ -1,13 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart' show ElevatedButton, ScaffoldMessenger, SnackBar;
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/widgets.dart' hide Notification;
 
 import '../model/auth.dart';
-import '../model/photos_library_api_model.dart';
 
 import 'app.dart';
+import 'notifications.dart';
 import 'photos_page.dart';
 
 typedef LoginCallback = Future<void> Function();
@@ -53,24 +54,42 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
+class NeedToLoginNotification extends Notification {
+  const NeedToLoginNotification({this.isInteractive = false});
+
+  final bool isInteractive;
+
+  @override
+  Widget? build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          const Text(
+            'To be able to show your personal photos, you must sign in to Google Photos.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontWeight: FontWeight.w500,
+              color: Color(0x99000000),
+            ),
+          ),
+          if (isInteractive) const LoginButton(),
+          if (!isInteractive)
+            const Text(
+              'Open System Screensaver Settings for this screensaver to sign in to Google Photos.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                color: Color(0x99000000),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 class _LoginPageState extends State<LoginPage> {
-  FocusNode? focusNode;
-  GlobalKey<_LoginPageState>? globalKey;
-
-  @override
-  void initState() {
-    super.initState();
-    globalKey = GlobalKey();
-    focusNode = FocusNode();
-    WidgetsBinding.instance.focusManager.rootScope.requestFocus(focusNode);
-  }
-
-  @override
-  void dispose() {
-    focusNode!.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     final bool isInteractive = PhotosApp.of(context).isInteractive;
@@ -101,33 +120,9 @@ class _LoginPageState extends State<LoginPage> {
               ),
               ColoredBox(
                 color: const Color(0xfff3eff3),
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(10),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: <Widget>[
-                        const Text(
-                          'To be able to show your personal photos, you must sign in to Google Photos.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w500,
-                            color: Color(0x99000000),
-                          ),
-                        ),
-                        if (isInteractive) LoginButton(globalKey: globalKey, focusNode: focusNode),
-                        if (!isInteractive)
-                          const Text(
-                            'Open System Screensaver Settings for this screensaver to sign in to Google Photos.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w500,
-                              color: Color(0x99000000),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: NeedToLoginNotification(isInteractive: isInteractive).build(context),
                 ),
               ),
             ],
@@ -151,23 +146,20 @@ class _LoginPageState extends State<LoginPage> {
 }
 
 class LoginButton extends StatefulWidget {
-  const LoginButton({
-    Key? key,
-    required this.globalKey,
-    required this.focusNode,
-  }) : super(key: key);
-
-  final GlobalKey<State<LoginPage>>? globalKey;
-  final FocusNode? focusNode;
+  const LoginButton({super.key});
 
   @override
   State<LoginButton> createState() => _LoginButtonState();
 }
 
 class _LoginButtonState extends State<LoginButton> {
+  late FocusNode focusNode;
+
   @override
   void initState() {
     super.initState();
+    focusNode = FocusNode();
+    WidgetsBinding.instance.focusManager.rootScope.requestFocus(focusNode);
     WidgetsBinding.instance.focusManager.addListener(() {
       final StringBuffer buf = StringBuffer();
       BuildContext? focusContext = WidgetsBinding.instance.focusManager.primaryFocus?.context;
@@ -181,18 +173,18 @@ class _LoginButtonState extends State<LoginButton> {
       }
       debugPrint(buf.toString());
     });
-    scheduleMicrotask(() {
-      if (widget.focusNode?.canRequestFocus ?? false) {
-        widget.focusNode?.requestFocus();
-      }
-    });
+  }
+
+  @override
+  void dispose() {
+    focusNode.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return ElevatedButton(
-      key: widget.globalKey,
-      focusNode: widget.focusNode,
+      focusNode: focusNode,
       style: ElevatedButton.styleFrom(padding: const EdgeInsets.all(15)),
       child: const Text('Connect with Google Photos'),
       onFocusChange: (bool hasFocus) {

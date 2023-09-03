@@ -6,7 +6,6 @@ import 'dart:ui' as ui;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
-import 'package:photos/src/model/auth.dart';
 
 import '../model/photo.dart';
 import '../model/photo_producer.dart';
