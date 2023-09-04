@@ -10,6 +10,7 @@ import android.os.Bundle;
 import androidx.annotation.Nullable;
 
 import io.flutter.embedding.android.FlutterActivity;
+import io.flutter.embedding.android.FlutterView;
 
 public class SettingsActivity extends FlutterActivity {
     private PhotosChannel photosChannel;
