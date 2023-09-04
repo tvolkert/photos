@@ -124,6 +124,13 @@ abstract class PhotosAppController extends AppController {
   /// stop the app with simple keypad interaction.
   bool get isInteractive;
 
+  /// Tells whether the performance metrics panel is currently being shown to
+  /// the user.
+  bool get isShowPerformanceMetrics;
+
+  /// Toggles whether the performance metrics pabel is shown to the user.
+  void toggleShowPerformanceMetrics();
+
   /// Sets the current state of the photos library update.
   ///
   /// If non-null, the `message` may be shown to the user in the status display.
@@ -147,10 +154,19 @@ enum PhotosLibraryUpdateStatus {
   error,
 }
 
+class _ClearMetricsNotifier extends ChangeNotifier {
+  void notify() {
+    notifyListeners();
+  }
+}
+
 class _PhotosAppState extends State<PhotosApp> with AppControllerMixin<PhotosApp> implements PhotosAppController {
   PhotosLibraryUpdateStatus _updateStatus = PhotosLibraryUpdateStatus.idle;
   String? _updateMessage;
   Notification? _bottomBarNotification;
+  bool _showPerformanceMetrics = false;
+  final _ClearMetricsNotifier _clearPerformanceMetricsNotifier = _ClearMetricsNotifier();
+  WidgetBuilder? _performanceMetricsNotification;
 
   void _handleApiModelUpdate() {
     setState(() {
@@ -158,11 +174,60 @@ class _PhotosAppState extends State<PhotosApp> with AppControllerMixin<PhotosApp
     });
   }
 
+  void _handleTimingsReport([
+    Duration averageBuildTime = Duration.zero,
+    Duration averageRasterTime = Duration.zero,
+    Duration averageTotalTime = Duration.zero,
+    Duration worstBuildTime = Duration.zero,
+    Duration worstRasterTime = Duration.zero,
+    Duration worstTotalTime = Duration.zero,
+    int missedFrames = 0,
+  ]) {
+    void updateNotification() {
+      _performanceMetricsNotification = (BuildContext context) {
+        return Text(
+          'Average build time: ${averageBuildTime.inMilliseconds}ms\n'
+          'Average raster time: ${averageRasterTime.inMilliseconds}ms\n'
+          'Average frame time: ${averageTotalTime.inMilliseconds}ms\n'
+          'Worst build time: ${worstBuildTime.inMilliseconds}ms\n'
+          'Worst raster time: ${worstRasterTime.inMilliseconds}ms\n'
+          'Worst frame time: ${worstTotalTime.inMilliseconds}ms\n'
+          'Missed frames: $missedFrames'
+        );
+      };
+    }
+    if (_showPerformanceMetrics) {
+      setState(updateNotification);
+    } else {
+      updateNotification();
+    }
+  }
+
   @override
   PhotosLibraryApiModel get apiModel => widget.apiModel;
 
   @override
   bool get isInteractive => widget.interactive;
+
+  @override
+  bool get isShowPerformanceMetrics {
+    return isCollectingPerformanceMetrics && _showPerformanceMetrics;
+  }
+
+  @override
+  void toggleShowPerformanceMetrics() {
+    if (!isCollectingPerformanceMetrics) {
+      // No-op; metrics can't be shown if they're not being collected.
+      return;
+    }
+    setState(() {
+      _showPerformanceMetrics = !_showPerformanceMetrics;
+      if (_showPerformanceMetrics) {
+        _handleTimingsReport();
+        _clearPerformanceMetricsNotifier.notify();
+      }
+    });
+  }
 
   @override
   void setLibraryUpdateStatus((PhotosLibraryUpdateStatus, String?) status) {
@@ -198,36 +263,48 @@ class _PhotosAppState extends State<PhotosApp> with AppControllerMixin<PhotosApp
 
   @override
   Widget build(BuildContext context) {
-    return _PhotosAppScope(
-      state: this,
-      apiState: widget.apiModel.state,
-      isShowDebugInfo: isShowDebugInfo,
-      child: MediaQuery.fromView(
-        view: View.of(context),
-        child: Directionality(
-          textDirection: TextDirection.ltr,
-          child: DefaultTextStyle(
-            style: const TextStyle(
-              color: Color(0xffffffff),
-              fontSize: 10,
-            ),
-            child: ClipRect(
-              child: Stack(
-                fit: StackFit.passthrough,
-                children: <Widget>[
-                  KeyPressHandler(child: widget.child),
-                  NotificationsPanel(
-                    upperLeft: ErrorsNotification(errors),
-                    upperRight: UpdateStatusNotification(_updateStatus, _updateMessage),
-                    bottomBar: _bottomBarNotification,
-                  ),
-                  if (isShowDebugInfo) const DebugInfo(),
-                ],
-              ),
+    Widget app = MediaQuery.fromView(
+      view: View.of(context),
+      child: Directionality(
+        textDirection: TextDirection.ltr,
+        child: DefaultTextStyle(
+          style: const TextStyle(
+            color: Color(0xffffffff),
+            fontSize: 10,
+          ),
+          child: ClipRect(
+            child: Stack(
+              fit: StackFit.passthrough,
+              children: <Widget>[
+                KeyPressHandler(child: widget.child),
+                NotificationsPanel(
+                  upperLeft: ErrorsNotification(errors),
+                  upperRight: _showPerformanceMetrics
+                      ? NotificationBuilder(builder: _performanceMetricsNotification)
+                      : UpdateStatusNotification(_updateStatus, _updateMessage),
+                  bottomBar: _bottomBarNotification,
+                ),
+                if (isShowDebugInfo) const DebugInfo(),
+              ],
             ),
           ),
         ),
       ),
+    );
+
+    if (isCollectingPerformanceMetrics) {
+      app = PerformanceMonitor(
+        onTimingsReport: _handleTimingsReport,
+        clearValuesNotifier: _clearPerformanceMetricsNotifier,
+        child: app,
+      );
+    }
+
+    return _PhotosAppScope(
+      state: this,
+      apiState: widget.apiModel.state,
+      isShowDebugInfo: isShowDebugInfo,
+      child: app,
     );
   }
 }

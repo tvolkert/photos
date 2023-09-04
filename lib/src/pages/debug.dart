@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
 import '../model/dream.dart';
@@ -11,6 +12,13 @@ const bool forceShowDebugInfo = false;
 ///
 /// If this is false, errors will be displayed in debug mode only.
 const bool showErrorsInReleaseMode = true;
+
+/// Whether to monitor performance timings from the engine.
+///
+/// When this is enabled, the app will respond to the keyboard key `digit9`
+/// by showing a bottom bar notification containing the performance metric
+/// averages.
+const bool isCollectingPerformanceMetrics = true;
 
 class DebugInfo extends StatefulWidget {
   const DebugInfo({super.key});
@@ -90,4 +98,142 @@ class _DebugInfoState extends State<DebugInfo> {
       ],
     );
   }
+}
+
+typedef TimingsReportCallback = void Function(
+  Duration averageBuildTime,
+  Duration averageRasterTime,
+  Duration averageTotalTime,
+  Duration worstBuildTime,
+  Duration worstRasterTime,
+  Duration worstTotalTime,
+  int missedFrames,
+);
+
+class PerformanceMonitor extends StatefulWidget {
+  const PerformanceMonitor({
+    super.key,
+    this.sampleFrequency = 100,
+    this.clearValuesNotifier,
+    required this.onTimingsReport,
+    required this.child,
+  });
+
+  /// The frequency with which this widget will calculate average performance
+  /// metrics.
+  ///
+  /// This widget will call [onTimingsReport] every `sampleFrequency` frames.
+  /// When it does, it will report the averages since the last time it called
+  /// the callback.
+  final int sampleFrequency;
+
+  /// Optional object that, when fired, will cause this widget to clear its
+  /// stored performance metrics and start collecting from scratch.
+  ///
+  /// This can be used to wipe clean any records of average frame times or worst
+  /// frame times.
+  final Listenable? clearValuesNotifier;
+
+  /// Callback to receive the performance metrics that have been collected.
+  ///
+  /// This widget will call `onTimingsReport` every [sampleFrequency] frames.
+  /// When it does, it will report the averages since the last time it called
+  /// the callback.
+  final TimingsReportCallback onTimingsReport;
+
+  /// The child widget.
+  final Widget child;
+
+  @override
+  State<PerformanceMonitor> createState() => _PerformanceMonitorState();
+}
+
+class _PerformanceMonitorState extends State<PerformanceMonitor> {
+  int? lastFrameNumber;
+  late int localFrameCount;
+  late int globalMissedFrames;
+  late Duration localTotalBuildTime;
+  late Duration localTotalRasterTime;
+  late Duration localTotalTime;
+  late Duration globalWorstBuildTime;
+  late Duration globalWorstRasterTime;
+  late Duration globalWorstTotalTime;
+
+  void _initializeValues() {
+    lastFrameNumber = null;
+    localFrameCount = 0;
+    globalMissedFrames = 0;
+    localTotalBuildTime = Duration.zero;
+    localTotalRasterTime = Duration.zero;
+    localTotalTime = Duration.zero;
+    globalWorstBuildTime = Duration.zero;
+    globalWorstRasterTime = Duration.zero;
+    globalWorstTotalTime = Duration.zero;
+  }
+
+  void _handleTimings(List<FrameTiming> timings) {
+    assert(mounted);
+    for (FrameTiming frame in timings) {
+      lastFrameNumber ??= frame.frameNumber - 1;
+      localFrameCount++;
+      localTotalBuildTime += frame.buildDuration;
+      localTotalRasterTime += frame.rasterDuration;
+      localTotalTime += frame.totalSpan;
+      if (localFrameCount % widget.sampleFrequency == 0) {
+        final Duration localAverageBuildTime = localTotalBuildTime ~/ localFrameCount;
+        final Duration localAverageRasterTime = localTotalRasterTime ~/ localFrameCount;
+        final Duration localAverageTotalTime = localTotalTime ~/ localFrameCount;
+        localFrameCount = 0;
+        localTotalBuildTime = Duration.zero;
+        localTotalRasterTime = Duration.zero;
+        localTotalTime = Duration.zero;
+        widget.onTimingsReport(
+          localAverageBuildTime,
+          localAverageRasterTime,
+          localAverageTotalTime,
+          globalWorstBuildTime,
+          globalWorstRasterTime,
+          globalWorstTotalTime,
+          globalMissedFrames,
+        );
+      }
+      if (frame.buildDuration > globalWorstBuildTime) {
+        globalWorstBuildTime = frame.buildDuration;
+      }
+      if (frame.rasterDuration > globalWorstRasterTime) {
+        globalWorstRasterTime = frame.rasterDuration;
+      }
+      if (frame.totalSpan > globalWorstTotalTime) {
+        globalWorstTotalTime = frame.totalSpan;
+      }
+      if (frame.frameNumber != lastFrameNumber! + 1) {
+        globalMissedFrames += frame.frameNumber - lastFrameNumber! - 1;
+        debugPrint('!' * 120);
+      }
+      lastFrameNumber = frame.frameNumber;
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeValues();
+    widget.clearValuesNotifier?.addListener(_initializeValues);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    SchedulerBinding.instance.addTimingsCallback(_handleTimings);
+  }
+
+  @override
+  void dispose() {
+    widget.clearValuesNotifier?.removeListener(_initializeValues);
+    SchedulerBinding.instance.removeTimingsCallback(_handleTimings);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }

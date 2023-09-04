@@ -34,6 +34,8 @@ class _KeyPressHandlerState extends State<KeyPressHandler> {
           debugPrint('Read photos file; got ${bytes.length} bytes; writing to downloads...');
           await DreamBinding.instance.writeFileToDownloads(basename, bytes);
         }();
+      } else if (event.logicalKey == LogicalKeyboardKey.digit8 || event.logicalKey == LogicalKeyboardKey.keyP) {
+        PhotosApp.of(context).toggleShowPerformanceMetrics();
       // } else if (event.logicalKey == LogicalKeyboardKey.digit1) {
       //   PhotosApp.of(context).addError(StateError('state error'), StackTrace.current);
       //   result = KeyEventResult.handled;

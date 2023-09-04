@@ -92,7 +92,7 @@ class ErrorsNotification extends Notification {
 }
 
 final class _NotificationPlacement {
-  const _NotificationPlacement._({
+  const _NotificationPlacement({
     this.left,
     this.top,
     this.right,
@@ -119,18 +119,18 @@ final class _NotificationPlacement {
     return _extraConstraints?.call(screenSize) ?? const BoxConstraints();
   }
 
-  static const _NotificationPlacement upperLeft = _NotificationPlacement._(
+  static const _NotificationPlacement upperLeft = _NotificationPlacement(
     top: _padding,
     left: _padding,
     extraConstraints: _quadrant,
   );
 
-  static const _NotificationPlacement upperRight = _NotificationPlacement._(
+  static const _NotificationPlacement upperRight = _NotificationPlacement(
     top: _padding,
     right: _padding,
   );
 
-  static const _NotificationPlacement bottomBar = _NotificationPlacement._(
+  static const _NotificationPlacement bottomBar = _NotificationPlacement(
     left: _padding,
     bottom: _padding,
     right: _padding,
