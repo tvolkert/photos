@@ -192,16 +192,38 @@ class PhotosLibraryApiModel extends ChangeNotifier {
     debugPrint('Reloading photo cache...');
     final PhotosAppController? app = UiBinding.instance.getTypedController();
     final FilesBinding files = FilesBinding.instance;
-    final File tmpPhotoFile = files.photosFile.parent.childFile('${files.photosFile.basename}.tmp');
-    final File tmpVideoFile = files.videosFile.parent.childFile('${files.videosFile.basename}.tmp');
-    if (tmpPhotoFile.existsSync()) {
-      await tmpPhotoFile.delete(recursive: true);
+
+    AsyncCallback moveFilesToPermanentLocation = () async {};
+    AsyncCallback cleanup = () async {};
+    File photoFileOut = files.photosFile;
+    File videoFileOut = files.videosFile;
+    if (photoFileOut.existsSync()) {
+      // Write to a temporary location so as to allow access to the user's
+      // entire photo library during the database update.
+      photoFileOut = photoFileOut.parent.childFile('${photoFileOut.basename}.tmp');
+      videoFileOut = videoFileOut.parent.childFile('${videoFileOut.basename}.tmp');
+      if (photoFileOut.existsSync()) {
+        await photoFileOut.delete(recursive: true);
+      }
+      if (videoFileOut.existsSync()) {
+        await videoFileOut.delete(recursive: true);
+      }
+      moveFilesToPermanentLocation = () async {
+        await photoFileOut.rename(files.photosFile.path);
+        await videoFileOut.rename(files.videosFile.path);
+      };
+      cleanup = () async {
+        if (photoFileOut.existsSync()) {
+          await photoFileOut.delete(recursive: true);
+        }
+        if (videoFileOut.existsSync()) {
+          await videoFileOut.delete(recursive: true);
+        }
+      };
     }
-    if (tmpVideoFile.existsSync()) {
-      await tmpVideoFile.delete(recursive: true);
-    }
-    assert(!tmpPhotoFile.existsSync());
-    assert(!tmpVideoFile.existsSync());
+    assert(!photoFileOut.existsSync());
+    assert(!videoFileOut.existsSync());
+
     try {
       String? nextPageToken;
       int count = 0;
@@ -215,12 +237,12 @@ class PhotosLibraryApiModel extends ChangeNotifier {
           final ListMediaItemsResponse response = await _listMediaItems(nextPageToken);
           if (response.mediaItemsOrEmpty.isEmpty && count == 0) {
             // Special case of an empty photo library.
-            await tmpPhotoFile.create();
-            await tmpVideoFile.create();
+            await photoFileOut.create();
+            await videoFileOut.create();
             break;
           }
-          await _appendPhotosToFile(tmpPhotoFile, response.mediaItemsOrEmpty);
-          await _appendVideosToFile(tmpVideoFile, response.mediaItemsOrEmpty);
+          await _appendPhotosToFile(photoFileOut, response.mediaItemsOrEmpty);
+          await _appendVideosToFile(videoFileOut, response.mediaItemsOrEmpty);
           count += response.mediaItemsOrEmpty.length;
           nextPageToken = response.nextPageToken;
         } on PhotosApiException catch (error) {
@@ -239,17 +261,11 @@ class PhotosLibraryApiModel extends ChangeNotifier {
         await Future.delayed(const Duration(milliseconds: 1));
       }
       debugPrint('Done loading $count items.');
-      await tmpPhotoFile.rename(files.photosFile.path);
-      await tmpVideoFile.rename(files.videosFile.path);
+      await moveFilesToPermanentLocation();
     } catch (error, stackTrace) {
       debugPrint('$error\n$stackTrace');
     } finally {
-      if (tmpPhotoFile.existsSync()) {
-        await tmpPhotoFile.delete(recursive: true);
-      }
-      if (tmpVideoFile.existsSync()) {
-        await tmpVideoFile.delete(recursive: true);
-      }
+      await cleanup();
     }
   }
 
