@@ -116,7 +116,15 @@ final class _NotificationPlacement {
   }
 
   BoxConstraints applyExtraConstraints(Size screenSize) {
-    return _extraConstraints?.call(screenSize) ?? const BoxConstraints();
+    BoxConstraints? calculatedConstraints = _extraConstraints?.call(screenSize);
+    assert(() {
+      if (calculatedConstraints != null && !calculatedConstraints!.isNormalized) {
+        debugPrint('NotificationPlacement($left,$top,$right,$bottom) returned non-normalized constraints of $calculatedConstraints');
+        calculatedConstraints = const BoxConstraints();
+      }
+      return true;
+    }());
+    return calculatedConstraints ?? const BoxConstraints();
   }
 
   static const _NotificationPlacement upperLeft = _NotificationPlacement(

@@ -13,7 +13,7 @@ import 'src/pages/app.dart';
 import 'src/pages/settings.dart';
 
 /// This exists merely for convenience during development.
-void main() => settingsMain();
+void main() => dream();
 
 @pragma('vm:entry-point')
 void settingsMain() {

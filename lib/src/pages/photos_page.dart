@@ -441,17 +441,18 @@ class _PhotoContainerState extends State<PhotoContainer> {
 
   @override
   Widget build(BuildContext context) {
-    List<Widget> children = <Widget>[];
+    Widget child;
     if (_imageInfo == null) {
-      children.add(Container());
+      child = Container();
     } else {
-      children.add(RawImage(
+      child = RawImage(
         image: _imageInfo!.image,
         scale: _imageInfo!.scale,
         debugImageLabel: widget.debugImageLabel,
-      ));
+      );
     }
     if (PhotosApp.of(context).isShowDebugInfo) {
+      List<Widget> children = <Widget>[child];
       children.addAll(<Widget>[
         ColoredBox(color: widget.builder.layer.debugColor),
         Positioned(
@@ -478,6 +479,10 @@ class _PhotoContainerState extends State<PhotoContainer> {
             ),
           ),
       ]);
+      child = Stack(
+        fit: StackFit.passthrough,
+        children: children,
+      );
     }
 
     return MontageCard(
@@ -486,10 +491,7 @@ class _PhotoContainerState extends State<PhotoContainer> {
       y: widget.location.dy,
       z: widget.builder.layer.zIndex,
       scale: widget.builder.layer.drawingScale,
-      child: Stack(
-        fit: StackFit.passthrough,
-        children: children,
-      ),
+      child: child,
     );
   }
 }
@@ -844,6 +846,12 @@ class RenderMontageCard extends RenderProxyBox {
       ..translate(x, y, z)
       ..scale(scale, scale, scale);
   }
+
+  // @override
+  // bool get isRepaintBoundary => true;
+
+  // @override
+  // bool get alwaysNeedsCompositing => true;
 
   @override
   void paint(PaintingContext context, Offset offset) {

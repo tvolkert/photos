@@ -57,6 +57,27 @@
                 android:resource="@xml/main_service" />
         </service>
 
+	<!--
+	    This should only be defined in debug/profile builds, but it needs to
+	    be here due to https://github.com/flutter/flutter/issues/134018.
+	-->
+        <activity
+            android:name=".DreamActivity"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:exported="true"
+            android:hardwareAccelerated="true"
+            android:launchMode="singleTop"
+            android:theme="@style/Theme.Leanback"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+              <action android:name="android.intent.action.MAIN" />
+	      <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <meta-data
+                android:name="io.flutter.Entrypoint"
+                android:value="dream" />
+        </activity>
+
         <!--
  Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java

@@ -208,7 +208,6 @@ class _PerformanceMonitorState extends State<PerformanceMonitor> {
       }
       if (frame.frameNumber != lastFrameNumber! + 1) {
         globalMissedFrames += frame.frameNumber - lastFrameNumber! - 1;
-        debugPrint('!' * 120);
       }
       lastFrameNumber = frame.frameNumber;
     }
