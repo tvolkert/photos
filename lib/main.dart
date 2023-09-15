@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter/material.dart' show CircularProgressIndicator;
 
 import 'src/model/app.dart';
 import 'src/model/auth.dart';
@@ -19,7 +18,7 @@ void main() => dream();
 void settingsMain() {
   _runWithErrorChecking(() async {
     await AppBinding.ensureInitialized();
-    runApp(const _LoadingScreen());
+    runApp(const SettingsAppLoadingScreen());
     await AuthBinding.instance.signInSilently();
     runApp(const SettingsApp());
   });
@@ -50,18 +49,4 @@ void _runWithErrorChecking(AsyncCallback callback) {
       UiBinding.instance.controller?.addError(error, stack);
     },
   );
-}
-
-class _LoadingScreen extends StatelessWidget {
-  const _LoadingScreen();
-
-  @override
-  Widget build(BuildContext context) {
-    return const ColoredBox(
-      color: SettingsNav.defaultBgColor,
-      child: Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
-  }
 }
