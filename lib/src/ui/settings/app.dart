@@ -3,13 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart' show CircleAvatar, Icons;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+
 import 'package:google_sign_in/google_sign_in.dart';
 
-import '../model/auth.dart';
-import '../model/ui.dart';
-
-import 'app.dart';
-import 'notifications.dart';
+import 'package:photos/src/model/auth.dart';
+import 'package:photos/src/model/ui.dart';
+import 'package:photos/src/ui/common/app.dart';
+import 'package:photos/src/ui/common/notifications.dart';
 
 class SettingsApp extends StatefulWidget {
   const SettingsApp({super.key});

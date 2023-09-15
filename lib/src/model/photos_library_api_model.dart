@@ -9,7 +9,7 @@ import 'package:http/http.dart' as http;
 
 import '../model/auth.dart';
 import '../model/ui.dart';
-import '../pages/app.dart';
+import '../ui/montage/app.dart';
 import '../photos_library_api/batch_get_request.dart';
 import '../photos_library_api/batch_get_response.dart';
 import '../photos_library_api/exceptions.dart';

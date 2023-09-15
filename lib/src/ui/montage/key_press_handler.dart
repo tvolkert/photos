@@ -1,9 +1,9 @@
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
-import 'package:photos/src/model/files.dart';
 
-import '../model/dream.dart';
+import 'package:photos/src/model/dream.dart';
+import 'package:photos/src/model/files.dart';
 
 import 'app.dart';
 

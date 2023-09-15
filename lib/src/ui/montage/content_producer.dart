@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 
-import '../model/photo.dart';
-import '../model/photo_producer.dart';
+import 'package:photos/src/model/photo.dart';
+import 'package:photos/src/model/photo_producer.dart';
 
 class ContentProducer extends StatefulWidget {
   const ContentProducer({

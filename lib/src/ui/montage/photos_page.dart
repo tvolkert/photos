@@ -7,14 +7,14 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart' hide Notification;
 
-import '../model/photo.dart';
-import '../model/photo_producer.dart';
-import '../model/photos_library_api_model.dart';
+import 'package:photos/src/model/photo.dart';
+import 'package:photos/src/model/photo_producer.dart';
+import 'package:photos/src/model/photos_library_api_model.dart';
+import 'package:photos/src/ui/common/debug.dart';
+import 'package:photos/src/ui/common/notifications.dart';
 
 import 'app.dart';
 import 'content_producer.dart';
-import 'debug.dart';
-import 'notifications.dart';
 
 const _rotationInterval = Duration(seconds: 60);
 const double _perspectiveAngleRadians = 0.4315;

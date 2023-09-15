@@ -1,10 +1,10 @@
 import 'package:flutter/widgets.dart';
 
-import '../model/photo_producer.dart';
-import '../model/photos_library_api_model.dart';
+import 'package:photos/src/model/photo_producer.dart';
+import 'package:photos/src/model/photos_library_api_model.dart';
+import 'package:photos/src/ui/common/notifications.dart';
 
 import 'app.dart';
-import 'notifications.dart';
 import 'photos_page.dart';
 
 class HomePage extends StatelessWidget {

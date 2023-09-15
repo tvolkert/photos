@@ -8,9 +8,9 @@ import 'src/model/app.dart';
 import 'src/model/auth.dart';
 import 'src/model/photos_library_api_model.dart';
 import 'src/model/ui.dart';
-import 'src/ui/home_page.dart';
-import 'src/ui/app.dart';
-import 'src/ui/settings.dart';
+import 'src/ui/montage/home_page.dart';
+import 'src/ui/montage/app.dart';
+import 'src/ui/settings/app.dart';
 
 /// This exists merely for convenience during development.
 void main() => dream();

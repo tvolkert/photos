@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
-import '../model/dream.dart';
+import 'package:photos/src/model/dream.dart';
 
 /// Whether to always show debug info in the photos app.
 const bool forceShowDebugInfo = false;
