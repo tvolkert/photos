@@ -91,6 +91,37 @@ class ErrorsNotification extends Notification {
   toString() => 'ErrorNotification(count=${errors.length})';
 }
 
+class NeedToLoginNotification extends Notification {
+  const NeedToLoginNotification();
+
+  @override
+  Widget? build(BuildContext context) {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          Text(
+            'To be able to show your personal photos, you must sign in to Google Photos.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontWeight: FontWeight.w500,
+              color: Color(0x99000000),
+            ),
+          ),
+          Text(
+            'Open System Screensaver Settings for this screensaver to sign in to Google Photos.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontWeight: FontWeight.w500,
+              color: Color(0x99000000),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 final class _NotificationPlacement {
   const _NotificationPlacement({
     this.left,

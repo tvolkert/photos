@@ -11,21 +11,6 @@ import 'photo.dart';
 import 'photos_library_api_model.dart';
 
 abstract class PhotoProducer {
-  /// Creates a [PhotoProducer] that produces photos from Google Photos using
-  /// the specified [model] object.
-  ///
-  /// If the Google Photos API fails for any reason, this photo producer will
-  /// fall back to producing photos that are pulled statically from assets that
-  /// are bundled with this app (or, as a last resort, Todd's profile pic).
-  factory PhotoProducer(PhotosLibraryApiModel model) = _GooglePhotosPhotoProducer;
-
-  /// Creates a [PhotoProducer] that produces photos that are pulled statically
-  /// from assets that are bundled with this app.
-  factory PhotoProducer.asset() = _AssetPhotoProducer;
-
-  /// Creates a [PhotoProducer] that produces a single static photo.
-  factory PhotoProducer.static() = _StaticPhotoProducer;
-
   const PhotoProducer._();
 
   /// Produces a [Photo] that fits within the specified size constraints.
@@ -36,8 +21,14 @@ abstract class PhotoProducer {
   });
 }
 
-class _GooglePhotosPhotoProducer extends PhotoProducer {
-  _GooglePhotosPhotoProducer(this.model) : super._();
+/// A [PhotoProducer] that produces photos from Google Photos using
+/// the specified [model] object.
+///
+/// If the Google Photos API fails for any reason, this photo producer will
+/// fall back to producing photos that are pulled statically from assets that
+/// are bundled with this app (or, as a last resort, Todd's profile pic).
+class GooglePhotosPhotoProducer extends PhotoProducer {
+  GooglePhotosPhotoProducer(this.model) : super._();
 
   final PhotosLibraryApiModel model;
   final List<MediaItem> queue = <MediaItem>[];
@@ -113,7 +104,7 @@ class _GooglePhotosPhotoProducer extends PhotoProducer {
 
     if (queue.isEmpty) {
       // ignore: use_build_context_synchronously
-      return await const _AssetPhotoProducer().produce(
+      return await const AssetPhotoProducer().produce(
         context: context,
         sizeConstraints: sizeConstraints,
         scaleMultiplier: scaleMultiplier,
@@ -160,8 +151,10 @@ class ImageBackedPhoto extends Photo {
   }
 }
 
-class _AssetPhotoProducer extends PhotoProducer {
-  const _AssetPhotoProducer() : super._();
+/// A [PhotoProducer] that produces photos that are pulled statically
+/// from assets that are bundled with this app.
+class AssetPhotoProducer extends PhotoProducer {
+  const AssetPhotoProducer() : super._();
 
   static const List<String> _assets = <String>[
     'assets/DSC_0013.jpg',
@@ -204,8 +197,9 @@ class _AssetPhotoProducer extends PhotoProducer {
   }
 }
 
-class _StaticPhotoProducer extends PhotoProducer {
-  const _StaticPhotoProducer() : super._();
+/// A [PhotoProducer] that produces a single static photo.
+class StaticPhotoProducer extends PhotoProducer {
+  const StaticPhotoProducer() : super._();
 
   @override
   Future<Photo> produce({

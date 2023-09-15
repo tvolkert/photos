@@ -13,6 +13,8 @@ class AppBinding extends AppBindingBase with FilesBinding, DreamBinding, AuthBin
   ///
   /// Applications should call this method before calling [runApp].
   static Future<void> ensureInitialized() async {
+    // [AppBinding.initInstances] may rely on things like [ServicesBinding].
+    WidgetsFlutterBinding.ensureInitialized();
     await AppBinding().initialized;
   }
 }
@@ -30,7 +32,9 @@ abstract class AppBindingBase {
     assert(_debugInitialized);
 
     developer.postEvent('Photos.AppInitialization', <String, String>{});
-    developer.Timeline.finishSync();
+    _initialized.whenComplete(() {
+      developer.Timeline.finishSync();
+    });
   }
 
   static bool _debugInitialized = false;
@@ -54,10 +58,6 @@ abstract class AppBindingBase {
       _debugInitialized = true;
       return true;
     }());
-    // This lives here instead of in `AppBinding.ensureInitialized()` to ensure
-    // that the widgets binding is initialized before subclass implementations
-    // of `initInstances()` (which may rely on things like `ServicesBinding`).
-    WidgetsFlutterBinding.ensureInitialized();
   }
 
   @override

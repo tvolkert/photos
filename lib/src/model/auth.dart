@@ -88,8 +88,9 @@ mixin AuthBinding on AppBindingBase {
     if (!isSignedIn) {
       throw StateError('No current user');
     }
+    assert(_currentUser == _googleSignIn.currentUser);
     // This will force the retrieval of new OAuth tokens.
-    await _googleSignIn.currentUser?.authentication;
+    await _googleSignIn.currentUser!.authentication;
     if (_onAuthTokensRenewed != null) {
       await _onAuthTokensRenewed!();
     }

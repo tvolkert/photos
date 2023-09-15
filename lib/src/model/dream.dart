@@ -16,7 +16,7 @@ mixin DreamBinding on AppBindingBase {
     } on PlatformException catch (error, stack) {
       debugPrint('failed to wake up: $error\n$stack');
     } on MissingPluginException {
-      debugPrint('No platform implementation for wakeUp()');
+      // No-op
     }
   }
 

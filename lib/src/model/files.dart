@@ -32,6 +32,7 @@ mixin FilesBinding on AppBindingBase {
       documentsDirectory = fs.directory(await getApplicationDocumentsDirectory()).absolute;
     } catch (error, stack) {
       debugPrint('Error getting application documents directory: $error\n$stack');
+      debugPrint('Falling back to memory file system');
       fs = MemoryFileSystem();
       documentsDirectory = fs.directory('documents')..createSync();
     }

@@ -32,21 +32,6 @@ class PhotosApp extends StatefulWidget {
   }
 }
 
-abstract class AppController {
-  /// Tells whether debug info is currently being shown to the user.
-  bool get isShowDebugInfo;
-
-  /// Toggles whether debug info is shown to the user.
-  void toggleShowDebugInfo();
-
-  /// Adds an error to the list of errors to possibly show the user.
-  ///
-  /// If [showErrorsInReleaseMode] is true, then errors will always be shown
-  /// to the user. If it is false, then errors will be shown in debug mode
-  /// only.
-  void addError(Object error, StackTrace? stack);
-}
-
 mixin AppControllerMixin<T extends StatefulWidget> on State<T> implements AppController {
   bool _showDebugInfo = false;
   final List<(Object, StackTrace?)> _errors = <(Object, StackTrace?)>[];
