@@ -6,7 +6,7 @@ import 'package:flutter/widgets.dart';
 import 'src/model/app.dart';
 import 'src/model/auth.dart';
 import 'src/model/ui.dart';
-import 'src/ui/montage/app.dart';
+import 'src/ui/photos/app.dart';
 import 'src/ui/settings/app.dart';
 
 /// This exists merely for convenience during development.
