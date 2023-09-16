@@ -7,15 +7,11 @@ import 'package:photos/src/ui/common/app.dart';
 import 'package:photos/src/ui/common/debug.dart';
 import 'package:photos/src/ui/common/notifications.dart';
 
+import 'home.dart';
 import 'key_press_handler.dart';
 
 class PhotosApp extends StatefulWidget {
-  const PhotosApp({
-    super.key,
-    required this.child,
-  });
-
-  final Widget child;
+  const PhotosApp({super.key});
 
   @override
   State<PhotosApp> createState() => _PhotosAppState();
@@ -182,7 +178,7 @@ class _PhotosAppState extends State<PhotosApp> with AppControllerMixin<PhotosApp
             child: Stack(
               fit: StackFit.passthrough,
               children: <Widget>[
-                KeyPressHandler(child: widget.child),
+                const KeyPressHandler(child: PhotosHome()),
                 NotificationsPanel(
                   upperLeft: ErrorsNotification(errors),
                   upperRight: _showPerformanceMetrics

@@ -6,7 +6,6 @@ import 'package:flutter/widgets.dart';
 import 'src/model/app.dart';
 import 'src/model/auth.dart';
 import 'src/model/ui.dart';
-import 'src/ui/montage/home_page.dart';
 import 'src/ui/montage/app.dart';
 import 'src/ui/settings/app.dart';
 
@@ -28,11 +27,7 @@ void dream() async {
   _runWithErrorChecking(() async {
     await PhotosAppBinding.ensureInitialized();
     AuthBinding.instance.signInSilently();
-    runApp(
-      const PhotosApp(
-        child: HomePage(),
-      ),
-    );
+    runApp(const PhotosApp());
   });
 }
 

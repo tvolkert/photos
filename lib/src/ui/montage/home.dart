@@ -7,8 +7,8 @@ import 'package:photos/src/ui/common/notifications.dart';
 import 'app.dart';
 import 'photos_page.dart';
 
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
+class PhotosHome extends StatelessWidget {
+  const PhotosHome({super.key});
 
   @override
   Widget build(BuildContext context) {
