@@ -209,6 +209,7 @@ class AssetPhotosMontageContainer extends StatelessWidget {
   }
 }
 
+/// The top-level widget that hosts a photos montage.
 class MontageContainer extends StatelessWidget {
   const MontageContainer({
     super.key,

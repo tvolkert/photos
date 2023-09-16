@@ -5,6 +5,8 @@ import 'package:flutter/widgets.dart';
 import 'package:photos/src/model/photo.dart';
 import 'package:photos/src/model/photo_producer.dart';
 
+/// Widget that exposes a [ContentProducerController] to descendant widgets
+/// via [ContentProducer.of].
 class ContentProducer extends StatefulWidget {
   const ContentProducer({
     super.key,
@@ -12,7 +14,11 @@ class ContentProducer extends StatefulWidget {
     required this.child,
   });
 
+  /// The photo producer that will drive the behavior of
+  /// [ContentProducerController.producePhoto].
   final PhotoProducer producer;
+
+  /// The child widget.
   final Widget child;
 
   @override
@@ -40,15 +46,11 @@ abstract class ContentProducerController {
 class _ContentProducerState extends State<ContentProducer> implements ContentProducerController {
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (BuildContext context, BoxConstraints constraints) {
-      return MediaQuery(
-        data: MediaQuery.of(context).copyWith(size: constraints.biggest),
-        child: _ContentProducerScope(
-          state: this,
-          child: widget.child,
-        ),
-      );
-    });
+    return _ContentProducerScope(
+      state: this,
+      producer: widget.producer,
+      child: widget.child,
+    );
   }
 
   @override
@@ -64,13 +66,15 @@ class _ContentProducerState extends State<ContentProducer> implements ContentPro
 class _ContentProducerScope extends InheritedWidget {
   const _ContentProducerScope({
     required this.state,
-    required Widget child,
-  }) : super(child: child);
+    required this.producer,
+    required super.child,
+  });
 
   final _ContentProducerState state;
+  final PhotoProducer producer;
 
   @override
   bool updateShouldNotify(_ContentProducerScope old) {
-    return state.widget.producer != old.state.widget.producer;
+    return producer != old.producer;
   }
 }
