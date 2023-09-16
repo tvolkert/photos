@@ -30,35 +30,17 @@ class _KeyPressHandlerState extends State<KeyPressHandler> {
         final String basename = 'photos_${now.toIso8601String()}';
         result = KeyEventResult.handled;
         () async {
-          final Uint8List bytes = await FilesBinding.instance.photosFile.readAsBytes();
-          debugPrint('Read photos file; got ${bytes.length} bytes; writing to downloads...');
-          await DreamBinding.instance.writeFileToDownloads(basename, bytes);
+          if (FilesBinding.instance.photosFile.existsSync()) {
+            final Uint8List bytes = await FilesBinding.instance.photosFile.readAsBytes();
+            debugPrint('Read photos file; got ${bytes.length} bytes; writing to downloads...');
+            await DreamBinding.instance.writeFileToDownloads(basename, bytes);
+          } else {
+            debugPrint('${FilesBinding.instance.photosFile.path} does not exist');
+          }
         }();
       } else if (event.logicalKey == LogicalKeyboardKey.digit8 || event.logicalKey == LogicalKeyboardKey.keyP) {
         PhotosApp.of(context).toggleShowPerformanceMetrics();
-      // } else if (event.logicalKey == LogicalKeyboardKey.digit1) {
-      //   PhotosApp.of(context).addError(StateError('state error'), StackTrace.current);
-      //   result = KeyEventResult.handled;
-      // } else if (event.logicalKey == LogicalKeyboardKey.digit2) {
-      //   PhotosApp.of(context).setLibraryUpdateStatus((PhotosLibraryUpdateStatus.idle, null));
-      //   result = KeyEventResult.handled;
-      // } else if (event.logicalKey == LogicalKeyboardKey.digit3) {
-      //   PhotosApp.of(context).setLibraryUpdateStatus((PhotosLibraryUpdateStatus.updating, null));
-      //   int i = 10;
-      //   Timer.periodic(const Duration(milliseconds: 500), (timer) {
-      //     if (i < 1) {
-      //       timer.cancel();
-      //     }
-      //     PhotosApp.of(context).setLibraryUpdateStatus((PhotosLibraryUpdateStatus.updating, '$i left to go'));
-      //     i--;
-      //   });
-      //   result = KeyEventResult.handled;
-      // } else if (event.logicalKey == LogicalKeyboardKey.digit4) {
-      //   PhotosApp.of(context).setLibraryUpdateStatus((PhotosLibraryUpdateStatus.success, null));
-      //   result = KeyEventResult.handled;
-      // } else if (event.logicalKey == LogicalKeyboardKey.digit5) {
-      //   PhotosApp.of(context).setLibraryUpdateStatus((PhotosLibraryUpdateStatus.error, null));
-      //   result = KeyEventResult.handled;
+        result = KeyEventResult.handled;
       } else {
         DreamBinding.instance.wakeUp();
         result = KeyEventResult.handled;

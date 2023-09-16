@@ -14,7 +14,7 @@ abstract class AppController {
   /// If [showErrorsInReleaseMode] is true, then errors will always be shown
   /// to the user. If it is false, then errors will be shown in debug mode
   /// only.
-  void addError(Object error, StackTrace? stack);
+  void addError(Object error, [StackTrace? stack]);
 }
 
 mixin UiBinding on AppBindingBase {

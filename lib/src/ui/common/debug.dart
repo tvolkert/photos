@@ -217,13 +217,8 @@ class _PerformanceMonitorState extends State<PerformanceMonitor> {
   void initState() {
     super.initState();
     _initializeValues();
-    widget.clearValuesNotifier?.addListener(_initializeValues);
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
     SchedulerBinding.instance.addTimingsCallback(_handleTimings);
+    widget.clearValuesNotifier?.addListener(_initializeValues);
   }
 
   @override

@@ -54,7 +54,7 @@ mixin AppControllerMixin<T extends StatefulWidget> on State<T> implements AppCon
   }
 
   @override
-  void addError(Object error, StackTrace? stack) {
+  void addError(Object error, [StackTrace? stack]) {
     void doAddError() {
       setState(() {
         _errors.insert(0, (error, stack));
