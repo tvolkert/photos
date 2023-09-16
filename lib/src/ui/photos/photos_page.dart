@@ -77,8 +77,8 @@ class MontageLayer {
   /// will cause items in this layer to move down instead of up.
   final double speed;
 
-  /// A color that allows the viewer to visually distinguish item in one layer
-  /// from item in another.
+  /// A color that allows the viewer to visually distinguish items in one layer
+  /// from items in another.
   ///
   /// See also:
   ///
@@ -128,6 +128,17 @@ class MontageLayer {
   );
 }
 
+/// A widget that will load a [MontageContainer] with a specified [PhotoProducer]
+/// along with an optional [Notification] to show in the app's bottom bar.
+///
+/// If you don't want to show any notification in the app's botton bar, consider
+/// using [GooglePhotosMontageContainer] or [AssetPhotosMontageContainer]
+/// instead.
+///
+/// See also:
+///
+///  * [PhotosApp.setBottomBarNotification], the API method that sets the
+///    notification that appears in the app's bottom bar.
 class MontageScaffold extends StatefulWidget {
   const MontageScaffold({
     super.key,
@@ -135,7 +146,14 @@ class MontageScaffold extends StatefulWidget {
     this.bottomBarNotification,
   });
 
+  /// The object that produces photos to show.
+  ///
+  /// Defaults to an instance of [AssetPhotoProducer].
   final PhotoProducer producer;
+
+  /// The optional notification to show in the app's bottom bar.
+  ///
+  /// If this is unspecified, this widget behaves exactly like [MontageContainer].
   final Notification? bottomBarNotification;
 
   @override
@@ -148,7 +166,8 @@ class _MontageScaffoldState extends State<MontageScaffold> {
     super.initState();
     if (widget.bottomBarNotification != null) {
       // This needs to be done in the next frame because setting the bottom bar
-      // notification forces a PhotosApp rebuild, which can't happen during a build.
+      // notification forces a PhotosApp rebuild, which isn't allowed to happen
+      // during an existing build phase (which we're currently in).
       SchedulerBinding.instance.addPostFrameCallback((Duration timeStamp) {
         final PhotosAppController app = PhotosApp.of(context);
         app.setBottomBarNotification(widget.bottomBarNotification);
@@ -168,6 +187,8 @@ class _MontageScaffoldState extends State<MontageScaffold> {
   }
 }
 
+/// A widget that builds a [MontageContainer] with photos produces using an
+/// instance of [GooglePhotosPhotoProducer].
 class GooglePhotosMontageContainer extends StatelessWidget {
   const GooglePhotosMontageContainer({super.key});
 
@@ -177,6 +198,8 @@ class GooglePhotosMontageContainer extends StatelessWidget {
   }
 }
 
+/// A widget that builds a [MontageContainer] with photos produces using an
+/// instance of [AssetPhotoProducer].
 class AssetPhotosMontageContainer extends StatelessWidget {
   const AssetPhotosMontageContainer({super.key});
 
