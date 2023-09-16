@@ -76,11 +76,9 @@ class _KeyPressHandlerState extends State<KeyPressHandler> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!PhotosApp.of(context).isInteractive) {
-      SchedulerBinding.instance.addPostFrameCallback((Duration timeStamp) {
-        focusNode.requestFocus();
-      });
-    }
+    SchedulerBinding.instance.addPostFrameCallback((Duration timeStamp) {
+      focusNode.requestFocus();
+    });
   }
 
   @override

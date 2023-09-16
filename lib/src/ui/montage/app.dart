@@ -12,12 +12,10 @@ import 'key_press_handler.dart';
 class PhotosApp extends StatefulWidget {
   const PhotosApp({
     super.key,
-    required this.interactive,
     required this.apiModel,
     required this.child,
   });
 
-  final bool interactive;
   final PhotosLibraryApiModel apiModel;
   final Widget child;
 
@@ -34,13 +32,6 @@ class PhotosApp extends StatefulWidget {
 abstract class PhotosAppController extends AppController {
   /// The Google Photos API model.
   PhotosLibraryApiModel get apiModel;
-
-  /// Tells whether this content producer is running in interactive mode.
-  ///
-  /// When interactive mode is false, the app was started automatically (it is
-  /// running as a screensaver), and it is expected that the user is able to
-  /// stop the app with simple keypad interaction.
-  bool get isInteractive;
 
   /// Tells whether the performance metrics panel is currently being shown to
   /// the user.
@@ -123,9 +114,6 @@ class _PhotosAppState extends State<PhotosApp> with AppControllerMixin<PhotosApp
 
   @override
   PhotosLibraryApiModel get apiModel => widget.apiModel;
-
-  @override
-  bool get isInteractive => widget.interactive;
 
   @override
   bool get isShowPerformanceMetrics {

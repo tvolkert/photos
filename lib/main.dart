@@ -32,7 +32,6 @@ void dream() async {
     AuthBinding.instance.signInSilently();
     runApp(
       PhotosApp(
-        interactive: false,
         apiModel: apiModel,
         child: const HomePage(),
       ),
