@@ -20,6 +20,7 @@ import '../photos_library_api/media_item_result.dart';
 import '../photos_library_api/photos_library_api_client.dart';
 import '../photos_library_api/status.dart';
 
+import 'app.dart';
 import 'codecs.dart';
 import 'files.dart';
 import 'random.dart' as random_binding;
@@ -63,14 +64,23 @@ enum PhotosLibraryApiState {
 /// Each entry in a database file is a utf8-encoded [MediaItem.id], which is
 /// then right-padded with [paddingByte] until the byte sequence reaches a
 /// length of [blockSize].
-class PhotosLibraryApiModel extends ChangeNotifier {
-  PhotosLibraryApiState _state = PhotosLibraryApiState.pendingAuthentication;
-  PhotosLibraryApiClient? _client;
+mixin PhotosApiBinding on AppBindingBase, ChangeNotifier {
+  /// The singleton instance of this object.
+  static late PhotosApiBinding _instance;
+  static PhotosApiBinding get instance => _instance;
 
-  PhotosLibraryApiModel() {
+  @override
+  @protected
+  @mustCallSuper
+  Future<void> initInstances() async {
+    await super.initInstances();
+    _instance = this;
     AuthBinding.instance.onAuthenticationAction = _handleAuthenticationAction;
     AuthBinding.instance.onAuthTokensRenewed = _handleAuthTokensRenewed;
   }
+
+  PhotosLibraryApiState _state = PhotosLibraryApiState.pendingAuthentication;
+  PhotosLibraryApiClient? _client;
 
   /// Callback that runs when the current user changes.
   ///

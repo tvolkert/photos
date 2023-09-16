@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart' show CircularProgressIndicator, Icons;
 import 'package:flutter/widgets.dart' hide Notification;
 
-import 'package:photos/src/model/photos_library_api_model.dart';
+import 'package:photos/src/model/photos_api.dart';
 import 'package:photos/src/model/ui.dart';
 import 'package:photos/src/ui/common/app.dart';
 import 'package:photos/src/ui/common/debug.dart';
@@ -12,11 +12,9 @@ import 'key_press_handler.dart';
 class PhotosApp extends StatefulWidget {
   const PhotosApp({
     super.key,
-    required this.apiModel,
     required this.child,
   });
 
-  final PhotosLibraryApiModel apiModel;
   final Widget child;
 
   @override
@@ -30,8 +28,8 @@ class PhotosApp extends StatefulWidget {
 
 /// Instances of this class can be obtained by calling [PhotosApp.of].
 abstract class PhotosAppController extends AppController {
-  /// The Google Photos API model.
-  PhotosLibraryApiModel get apiModel;
+  /// The current state of the app.
+  PhotosLibraryApiState get state;
 
   /// Tells whether the performance metrics panel is currently being shown to
   /// the user.
@@ -70,6 +68,7 @@ class _ClearMetricsNotifier extends ChangeNotifier {
 }
 
 class _PhotosAppState extends State<PhotosApp> with AppControllerMixin<PhotosApp> implements PhotosAppController {
+  late PhotosLibraryApiState _state;
   PhotosLibraryUpdateStatus _updateStatus = PhotosLibraryUpdateStatus.idle;
   String? _updateMessage;
   Notification? _bottomBarNotification;
@@ -79,7 +78,7 @@ class _PhotosAppState extends State<PhotosApp> with AppControllerMixin<PhotosApp
 
   void _handleApiModelUpdate() {
     setState(() {
-      // no-op; rebuild will pick up the latest api state.
+      _state = PhotosApiBinding.instance.state;
     });
   }
 
@@ -113,7 +112,7 @@ class _PhotosAppState extends State<PhotosApp> with AppControllerMixin<PhotosApp
   }
 
   @override
-  PhotosLibraryApiModel get apiModel => widget.apiModel;
+  PhotosLibraryApiState get state => _state;
 
   @override
   bool get isShowPerformanceMetrics {
@@ -157,12 +156,13 @@ class _PhotosAppState extends State<PhotosApp> with AppControllerMixin<PhotosApp
   void initState() {
     super.initState();
     UiBinding.instance.controller = this;
-    widget.apiModel.addListener(_handleApiModelUpdate);
+    _state = PhotosApiBinding.instance.state;
+    PhotosApiBinding.instance.addListener(_handleApiModelUpdate);
   }
 
   @override
   void dispose() {
-    widget.apiModel.removeListener(_handleApiModelUpdate);
+    PhotosApiBinding.instance.removeListener(_handleApiModelUpdate);
     UiBinding.instance.controller = null;
     super.dispose();
   }
@@ -208,7 +208,7 @@ class _PhotosAppState extends State<PhotosApp> with AppControllerMixin<PhotosApp
 
     return _PhotosAppScope(
       state: this,
-      apiState: widget.apiModel.state,
+      apiState: _state,
       isShowDebugInfo: isShowDebugInfo,
       child: app,
     );

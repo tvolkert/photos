@@ -9,7 +9,7 @@ import 'package:flutter/widgets.dart' hide Notification;
 
 import 'package:photos/src/model/photo.dart';
 import 'package:photos/src/model/photo_producer.dart';
-import 'package:photos/src/model/photos_library_api_model.dart';
+import 'package:photos/src/model/photos_api.dart';
 import 'package:photos/src/ui/common/debug.dart';
 import 'package:photos/src/ui/common/notifications.dart';
 
@@ -173,8 +173,7 @@ class GooglePhotosMontageContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final PhotosLibraryApiModel apiModel = PhotosApp.of(context).apiModel;
-    return MontageContainer(producer: GooglePhotosPhotoProducer(apiModel));
+    return MontageContainer(producer: GooglePhotosPhotoProducer());
   }
 }
 
@@ -436,7 +435,7 @@ class _PhotoContainerState extends State<PhotoContainer> {
     PhotosApp.of(context).addError(error, stack);
     if (error is NetworkImageLoadException && error.statusCode == HttpStatus.forbidden) {
       debugPrint('Renewing auth token');
-      await PhotosApp.of(context).apiModel.handleAuthTokenExpired();
+      await PhotosApiBinding.instance.handleAuthTokenExpired();
     }
   }
 

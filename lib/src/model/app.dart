@@ -6,16 +6,28 @@ import 'package:photos/src/model/dream.dart';
 
 import 'auth.dart';
 import 'files.dart';
+import 'photos_api.dart';
 import 'ui.dart';
 
-class AppBinding extends AppBindingBase with FilesBinding, DreamBinding, AuthBinding, UiBinding {
+class PhotosAppBinding extends AppBindingBase with ChangeNotifier, FilesBinding, DreamBinding, AuthBinding, UiBinding, PhotosApiBinding {
   /// Creates and initializes the application binding if necessary.
   ///
   /// Applications should call this method before calling [runApp].
   static Future<void> ensureInitialized() async {
     // [AppBinding.initInstances] may rely on things like [ServicesBinding].
     WidgetsFlutterBinding.ensureInitialized();
-    await AppBinding().initialized;
+    await PhotosAppBinding().initialized;
+  }
+}
+
+class SettingsAppBinding extends AppBindingBase with FilesBinding, DreamBinding, AuthBinding, UiBinding {
+  /// Creates and initializes the application binding if necessary.
+  ///
+  /// Applications should call this method before calling [runApp].
+  static Future<void> ensureInitialized() async {
+    // [AppBinding.initInstances] may rely on things like [ServicesBinding].
+    WidgetsFlutterBinding.ensureInitialized();
+    await SettingsAppBinding().initialized;
   }
 }
 

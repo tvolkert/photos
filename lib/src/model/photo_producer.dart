@@ -8,7 +8,7 @@ import '../photos_library_api/media_metadata.dart';
 
 import 'files.dart';
 import 'photo.dart';
-import 'photos_library_api_model.dart';
+import 'photos_api.dart';
 
 abstract class PhotoProducer {
   const PhotoProducer._();
@@ -28,9 +28,8 @@ abstract class PhotoProducer {
 /// fall back to producing photos that are pulled statically from assets that
 /// are bundled with this app (or, as a last resort, Todd's profile pic).
 class GooglePhotosPhotoProducer extends PhotoProducer {
-  GooglePhotosPhotoProducer(this.model) : super._();
+  GooglePhotosPhotoProducer() : super._();
 
-  final PhotosLibraryApiModel model;
   final List<MediaItem> queue = <MediaItem>[];
   Completer<void>? _queueCompleter;
 
@@ -76,8 +75,9 @@ class GooglePhotosPhotoProducer extends PhotoProducer {
       return;
     }
 
-    final List<String> mediaItemIds = await model.pickRandomMediaItems(_batchSize);
-    Iterable<MediaItem> items = await model.getMediaItems(mediaItemIds);
+    final PhotosApiBinding photosApi = PhotosApiBinding.instance;
+    final List<String> mediaItemIds = await photosApi.pickRandomMediaItems(_batchSize);
+    Iterable<MediaItem> items = await photosApi.getMediaItems(mediaItemIds);
     items = items.where((MediaItem item) => item.size != null);
     assert(() {
       if (items.length != _batchSize) {

@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import 'package:photos/src/model/photo_producer.dart';
-import 'package:photos/src/model/photos_library_api_model.dart';
+import 'package:photos/src/model/photos_api.dart';
 import 'package:photos/src/ui/common/notifications.dart';
 
 import 'app.dart';
@@ -12,8 +12,7 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final PhotosLibraryApiState state = PhotosApp.of(context).apiModel.state;
-    switch (state) {
+    switch (PhotosApp.of(context).state) {
       case PhotosLibraryApiState.pendingAuthentication:
         // Show a blank screen while we try to non-interactively sign in.
         return Container();

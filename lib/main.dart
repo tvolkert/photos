@@ -5,7 +5,6 @@ import 'package:flutter/widgets.dart';
 
 import 'src/model/app.dart';
 import 'src/model/auth.dart';
-import 'src/model/photos_library_api_model.dart';
 import 'src/model/ui.dart';
 import 'src/ui/montage/home_page.dart';
 import 'src/ui/montage/app.dart';
@@ -17,7 +16,7 @@ void main() => dream();
 @pragma('vm:entry-point')
 void settingsMain() {
   _runWithErrorChecking(() async {
-    await AppBinding.ensureInitialized();
+    await SettingsAppBinding.ensureInitialized();
     runApp(const SettingsAppLoadingScreen());
     await AuthBinding.instance.signInSilently();
     runApp(const SettingsApp());
@@ -27,13 +26,11 @@ void settingsMain() {
 @pragma('vm:entry-point')
 void dream() async {
   _runWithErrorChecking(() async {
-    await AppBinding.ensureInitialized();
-    final PhotosLibraryApiModel apiModel = PhotosLibraryApiModel();
+    await PhotosAppBinding.ensureInitialized();
     AuthBinding.instance.signInSilently();
     runApp(
-      PhotosApp(
-        apiModel: apiModel,
-        child: const HomePage(),
+      const PhotosApp(
+        child: HomePage(),
       ),
     );
   });
