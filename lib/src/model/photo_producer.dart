@@ -181,7 +181,7 @@ class AssetPhotoProducer extends PhotoProducer {
   }) async {
     final String assetName = _assets[_nextAssetIndex];
     final AssetImage asset = AssetImage(assetName);
-    final double scale = WidgetsBinding.instance.window.devicePixelRatio * scaleMultiplier;
+    final double scale = View.of(context).devicePixelRatio * scaleMultiplier;
     return Photo(
       id: assetName,
       size: sizeConstraints,
@@ -220,7 +220,7 @@ class StaticPhotoProducer extends PhotoProducer {
       id: staticMediaItem.id,
       mediaItem: staticMediaItem,
       size: staticSize,
-      scale: WidgetsBinding.instance.window.devicePixelRatio,
+      scale: View.of(context).devicePixelRatio,
       boundingConstraints: sizeConstraints,
       image: NetworkImage(staticMediaItem.getSizedUrl(staticSize)),
     );
