@@ -59,16 +59,21 @@ abstract class SettingsNavController {
   bool isActivePage(BuildContext context);
 }
 
-class SettingsNavEntry {
-  SettingsNavEntry(this.child): focusNode = FocusNode();
+class _SettingsNavEntry {
+  _SettingsNavEntry(this.child, {String? debugLabel})
+      : focusNode = FocusNode(canRequestFocus: false, debugLabel: debugLabel);
 
   final Widget child;
+
+  /// This node is used as the [SettingsNavPane.focusNode], at which point
+  /// [SettingsNavPane] takes ownership of the node and is responsible for
+  /// disposing it.
   final FocusNode focusNode;
 }
 
 class _SettingsNavState extends State<SettingsNav> with WidgetsBindingObserver implements SettingsNavController {
-  Completer<void>? _completer;
-  final List<SettingsNavEntry> _entries = <SettingsNavEntry>[];
+  Completer<void>? _scrollingCompleter;
+  final List<_SettingsNavEntry> _entries = <_SettingsNavEntry>[];
   late int _currentIndex;
 
   static const double _splitRatio = 0.58;
@@ -78,12 +83,12 @@ class _SettingsNavState extends State<SettingsNav> with WidgetsBindingObserver i
   }
 
   void _handleDoneScrolling() {
-    assert(_completer != null);
-    _completer!.complete();
-    _completer = null;
+    assert(_scrollingCompleter != null);
+    _scrollingCompleter!.complete();
+    _scrollingCompleter = null;
   }
 
-  bool get isScrolling => _completer != null;
+  bool get isScrolling => _scrollingCompleter != null;
 
   bool get isNotScrolling => !isScrolling;
 
@@ -108,24 +113,26 @@ class _SettingsNavState extends State<SettingsNav> with WidgetsBindingObserver i
   @override
   Future<void> forward() {
     assert(canMoveForward);
-    _completer = Completer<void>();
+    assert(_scrollingCompleter == null);
+    _scrollingCompleter = Completer<void>();
     setState(() {
       _currentIndex++;
       _focusCurrentEntry();
     });
-    return _completer!.future;
+    return _scrollingCompleter!.future;
   }
 
   @override
   Future<void> backward() {
     assert(canMoveBackward);
+    assert(_scrollingCompleter == null);
     bool clear = nextEntriesExist;
-    _completer = Completer<void>();
+    _scrollingCompleter = Completer<void>();
     setState(() {
       _currentIndex--;
       _focusCurrentEntry();
     });
-    return _completer!.future.then((_) {
+    return _scrollingCompleter!.future.then((_) {
       clearWhile(() {
         bool result = clear;
         clear = false;
@@ -138,7 +145,7 @@ class _SettingsNavState extends State<SettingsNav> with WidgetsBindingObserver i
   void setNext(Widget child) {
     assert(_currentIndex < _entries.length);
     setState(() {
-      final SettingsNavEntry entry = SettingsNavEntry(child);
+      final _SettingsNavEntry entry = _SettingsNavEntry(child, debugLabel: '${_currentIndex + 1}');
       if (_currentIndex == _entries.length - 1) {
         _entries.add(entry);
       } else {
@@ -161,7 +168,7 @@ class _SettingsNavState extends State<SettingsNav> with WidgetsBindingObserver i
   @override
   Future<bool> didPopRoute() async {
     if (isScrolling) {
-      await _completer!.future;
+      await _scrollingCompleter!.future;
     }
     // To ensure that the completer has been nulled out.
     await Future<void>.delayed(const Duration());
@@ -177,7 +184,7 @@ class _SettingsNavState extends State<SettingsNav> with WidgetsBindingObserver i
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _entries.add(SettingsNavEntry(widget.root));
+    _entries.add(_SettingsNavEntry(widget.root, debugLabel: 'root'));
     _currentIndex = 0;
   }
 
@@ -192,10 +199,10 @@ class _SettingsNavState extends State<SettingsNav> with WidgetsBindingObserver i
     return _SettingsNavScope(
       state: this,
       currentIndex: _currentIndex,
-      child: SettingsNavScroller(
+      child: _SettingsNavScroller(
         onDoneScrolling: _handleDoneScrolling,
         selectedIndex: _currentIndex,
-        child: SettingsNavChildren(
+        child: _SettingsNavChildren(
           index: _currentIndex,
           entries: _entries,
         ),
@@ -204,15 +211,14 @@ class _SettingsNavState extends State<SettingsNav> with WidgetsBindingObserver i
   }
 }
 
-class SettingsNavChildren extends StatelessWidget {
-  const SettingsNavChildren({
-    super.key,
+class _SettingsNavChildren extends StatelessWidget {
+  const _SettingsNavChildren({
     required this.index,
     required this.entries,
   });
 
   final int index;
-  final List<SettingsNavEntry> entries;
+  final List<_SettingsNavEntry> entries;
 
   @override
   Widget build(BuildContext context) {
@@ -328,9 +334,8 @@ class SettingsNavPaneState extends AnimatedWidgetBaseState<SettingsNavPane> {
   }
 }
 
-class SettingsNavScroller extends ImplicitlyAnimatedWidget {
-  const SettingsNavScroller({
-    super.key,
+class _SettingsNavScroller extends ImplicitlyAnimatedWidget {
+  const _SettingsNavScroller({
     required this.selectedIndex,
     required this.child,
     VoidCallback? onDoneScrolling,
@@ -349,7 +354,7 @@ class SettingsNavScroller extends ImplicitlyAnimatedWidget {
   }
 }
 
-class SettingsNavScrollerState extends AnimatedWidgetBaseState<SettingsNavScroller> {
+class SettingsNavScrollerState extends AnimatedWidgetBaseState<_SettingsNavScroller> {
   Tween<double>? _indexTween;
 
   @override

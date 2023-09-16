@@ -26,7 +26,7 @@ class SettingsAppLoadingScreen extends StatelessWidget {
 class SettingsApp extends StatefulWidget {
   const SettingsApp({super.key});
 
-  static const Map<ShortcutActivator, Intent> _settingsShortcuts = <ShortcutActivator, Intent>{
+  static const Map<ShortcutActivator, Intent> _shortcuts = <ShortcutActivator, Intent>{
     SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
     SingleActivator(LogicalKeyboardKey.arrowRight): ActivateIntent(),
     SingleActivator(LogicalKeyboardKey.tab): ActivateIntent(),
@@ -76,7 +76,7 @@ class _SettingsAppState extends State<SettingsApp> with AppControllerMixin<Setti
     return Shortcuts(
       shortcuts: {
         ...WidgetsApp.defaultShortcuts,
-        ...SettingsApp._settingsShortcuts,
+        ...SettingsApp._shortcuts,
       },
       child: Actions(
         actions: <Type, Action<Intent>>{

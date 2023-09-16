@@ -24,6 +24,7 @@ class IconSetting extends StatelessWidget {
     this.onGoForward,
     this.onGoBackward,
     this.onGainsFocus,
+    this.debugLabel,
   });
 
   final String text;
@@ -33,6 +34,7 @@ class IconSetting extends StatelessWidget {
   final VoidCallback? onGoForward;
   final VoidCallback? onGoBackward;
   final VoidCallback? onGainsFocus;
+  final String? debugLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +45,7 @@ class IconSetting extends StatelessWidget {
       onGoForward: onGoForward,
       onGoBackward: onGoBackward,
       onGainsFocus: onGainsFocus,
+      debugLabel: debugLabel ?? text,
       leading: (BuildContext context, bool hasFocus) {
         return Icon(
           icon,
@@ -67,6 +70,7 @@ class Setting extends StatefulWidget {
     this.onGoForward,
     this.onGoBackward,
     this.onGainsFocus,
+    this.debugLabel,
     required this.leading,
     required this.body,
   });
@@ -76,6 +80,7 @@ class Setting extends StatefulWidget {
   final VoidCallback? onGoForward;
   final VoidCallback? onGoBackward;
   final VoidCallback? onGainsFocus;
+  final String? debugLabel;
   final HasFocusBuilder leading;
   final HasFocusBuilder body;
 
@@ -160,6 +165,7 @@ class _SettingState extends State<Setting> {
   void initState() {
     super.initState();
     _focusNode = FocusNode(
+      debugLabel: widget.debugLabel,
       descendantsAreFocusable: false,
     );
   }

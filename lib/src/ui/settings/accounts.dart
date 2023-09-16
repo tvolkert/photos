@@ -74,6 +74,7 @@ class _AccountsPageState extends State<AccountsPage> {
       results.add(
         Setting(
           isActivePane: SettingsNav.of(context).isActivePage(context),
+          debugLabel: 'avatar',
           leading: (BuildContext context, bool hasFocus) {
             return avatar;
           },
