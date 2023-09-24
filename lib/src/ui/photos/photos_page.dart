@@ -791,23 +791,24 @@ class RenderMontage extends RenderBox
 
   @override
   void paint(PaintingContext context, Offset offset) {
-    final double distanceDx = math.tan(_perspectiveAngleRadians) * distance;
-    final double centerDx = size.width / 2;
+    final center = size / 2;
     assert(() {
       if (forceShowDebugInfo) {
         Paint paint = Paint()..color = const Color(0xffcc0000);
         context.canvas.drawLine(
-          Offset(centerDx, 0),
-          Offset(centerDx, size.height),
+          Offset(center.width, 0),
+          Offset(center.width, size.height),
           paint,
         );
       }
       return true;
     }());
-    Matrix4 transform = _perspectiveTransform.clone()
-      ..translate(centerDx + distanceDx, 0.0, distance)
+    Matrix4 transform = Matrix4.identity()
+      ..translate(center.width, center.height)
+      ..multiply(_perspectiveTransform)
+      ..translate(0.0, 0.0, distance)
       ..rotateY(rotation)
-      ..translate(-centerDx);
+      ..translate(-center.width, -center.height);
     PaintingContextCallback painter = paintForwards;
     if (rotation.abs() >= math.pi / 2.85 && rotation.abs() < math.pi * 1.48) {
       painter = paintBackwards;
