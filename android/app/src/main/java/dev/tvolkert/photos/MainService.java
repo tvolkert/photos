@@ -1,9 +1,14 @@
 package dev.tvolkert.photos;
 
 import android.annotation.TargetApi;
+import android.content.ContentResolver;
 import android.os.Build;
+import android.provider.Settings;
+import android.provider.Settings.SettingNotFoundException;
 import android.service.dreams.DreamService;
+import android.util.Log;
 import android.view.KeyEvent;
+import android.view.Window;
 import android.view.WindowManager.LayoutParams;
 
 import java.io.FileDescriptor;
@@ -21,9 +26,14 @@ public class MainService extends DreamService {
     private static final LayoutParams matchParent =
         new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
 
+    private static final int MAX_BRIGHTNESS = 255;
+
     private FlutterEngine flutterEngine;
     private FlutterView flutterView;
     private PhotosChannel photosChannel;
+
+    private int existingBrightnessMode;
+    private int existingBrightness;
 
     @Override
     public void onCreate() {
@@ -37,12 +47,39 @@ public class MainService extends DreamService {
         photosChannel.register();
     }
 
+    private void setScreenBrightness() {
+        if (Settings.System.canWrite(this)) {
+            ContentResolver resolver = getContentResolver();
+            Window window = getWindow();
+            try {
+                existingBrightnessMode = Settings.System.getInt(resolver, Settings.System.SCREEN_BRIGHTNESS_MODE);
+                Settings.System.putInt(resolver, Settings.System.SCREEN_BRIGHTNESS_MODE, Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL);
+                existingBrightness = Settings.System.getInt(resolver, Settings.System.SCREEN_BRIGHTNESS);
+                Settings.System.putInt(resolver, Settings.System.SCREEN_BRIGHTNESS, MAX_BRIGHTNESS);
+                LayoutParams layoutParams = window.getAttributes();
+                layoutParams.screenBrightness = MAX_BRIGHTNESS / 255f;
+                window.setAttributes(layoutParams);
+            } catch (SettingNotFoundException e) {
+                // Throw an error case it couldn't be retrieved
+                Log.e("Error", "Cannot access system brightness");
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void restoreScreenBrightness() {
+        ContentResolver resolver = getContentResolver();
+        Settings.System.putInt(resolver, Settings.System.SCREEN_BRIGHTNESS_MODE, existingBrightnessMode);
+        Settings.System.putInt(resolver, Settings.System.SCREEN_BRIGHTNESS, existingBrightness);
+    }
+
     @Override
     public void onAttachedToWindow() {
         super.onAttachedToWindow();
         setInteractive(true);
         setFullscreen(true);
         setScreenBright(true);
+        setScreenBrightness();
         flutterView = new FlutterView(this);
         flutterView.setLayoutParams(matchParent);
         flutterView.attachToFlutterEngine(flutterEngine);
@@ -53,6 +90,7 @@ public class MainService extends DreamService {
 
     @Override
     public void onDetachedFromWindow() {
+        restoreScreenBrightness();
         flutterView.detachFromFlutterEngine();
         flutterView = null;
         flutterEngine.getLifecycleChannel().appIsDetached();
