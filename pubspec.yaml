@@ -15,6 +15,7 @@ dependencies:
   path: any
   path_provider: any
   video_player: any
+  vector_math: any
 
 dev_dependencies:
   flutter_test:
