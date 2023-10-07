@@ -41,9 +41,6 @@ class _KeyPressHandlerState extends State<KeyPressHandler> {
       } else if (event.logicalKey == LogicalKeyboardKey.digit8 || event.logicalKey == LogicalKeyboardKey.keyP) {
         PhotosApp.of(context).toggleShowPerformanceMetrics();
         result = KeyEventResult.handled;
-      } else {
-        DreamBinding.instance.wakeUp();
-        result = KeyEventResult.handled;
       }
     }
     return result;

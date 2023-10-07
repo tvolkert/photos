@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart' show CircularProgressIndicator, Icons;
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart' hide Notification;
+import 'package:photos/src/model/dream.dart';
 
 import 'package:photos/src/model/photos_api.dart';
 import 'package:photos/src/model/ui.dart';
@@ -8,7 +10,7 @@ import 'package:photos/src/ui/common/debug.dart';
 import 'package:photos/src/ui/common/notifications.dart';
 
 import 'home.dart';
-import 'key_press_handler.dart';
+import 'shortcuts.dart';
 
 class PhotosApp extends StatefulWidget {
   const PhotosApp({super.key});
@@ -71,11 +73,20 @@ class _PhotosAppState extends State<PhotosApp> with AppControllerMixin<PhotosApp
   bool _showPerformanceMetrics = false;
   final _ClearMetricsNotifier _clearPerformanceMetricsNotifier = _ClearMetricsNotifier();
   WidgetBuilder? _performanceMetricsNotification;
+  late PhotosShortcutManager _shortcutManager;
 
   void _handleApiModelUpdate() {
     setState(() {
       _state = PhotosApiBinding.instance.state;
     });
+  }
+
+  KeyEventResult _handleKeyEvent(FocusNode focusNode, KeyEvent event) {
+    if (event is KeyDownEvent) {
+      DreamBinding.instance.wakeUp();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
   }
 
   void _handleTimingsReport([
@@ -153,12 +164,14 @@ class _PhotosAppState extends State<PhotosApp> with AppControllerMixin<PhotosApp
     super.initState();
     UiBinding.instance.controller = this;
     _state = PhotosApiBinding.instance.state;
+    _shortcutManager = PhotosShortcutManager();
     PhotosApiBinding.instance.addListener(_handleApiModelUpdate);
   }
 
   @override
   void dispose() {
     PhotosApiBinding.instance.removeListener(_handleApiModelUpdate);
+    _shortcutManager.dispose();
     UiBinding.instance.controller = null;
     super.dispose();
   }
@@ -174,20 +187,27 @@ class _PhotosAppState extends State<PhotosApp> with AppControllerMixin<PhotosApp
             color: Color(0xffffffff),
             fontSize: 10,
           ),
-          child: ClipRect(
-            child: Stack(
-              fit: StackFit.passthrough,
-              children: <Widget>[
-                const KeyPressHandler(child: PhotosHome()),
-                NotificationsPanel(
-                  upperLeft: ErrorsNotification(errors),
-                  upperRight: _showPerformanceMetrics
-                      ? NotificationBuilder(builder: _performanceMetricsNotification)
-                      : UpdateStatusNotification(_updateStatus, _updateMessage),
-                  bottomBar: _bottomBarNotification,
+          child: Focus(
+            canRequestFocus: false,
+            onKeyEvent: _handleKeyEvent,
+            child: Shortcuts.manager(
+              manager: _shortcutManager,
+              child: ClipRect(
+                child: Stack(
+                  fit: StackFit.passthrough,
+                  children: <Widget>[
+                    const PhotosHome(),
+                    NotificationsPanel(
+                      upperLeft: ErrorsNotification(errors),
+                      upperRight: _showPerformanceMetrics
+                          ? NotificationBuilder(builder: _performanceMetricsNotification)
+                          : UpdateStatusNotification(_updateStatus, _updateMessage),
+                      bottomBar: _bottomBarNotification,
+                    ),
+                    if (isShowDebugInfo) const DebugInfo(),
+                  ],
                 ),
-                if (isShowDebugInfo) const DebugInfo(),
-              ],
+              ),
             ),
           ),
         ),
