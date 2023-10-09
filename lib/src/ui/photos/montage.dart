@@ -12,7 +12,9 @@ typedef MontageCardReloadHandler = void Function(MontageCardConstraints constrai
 /// A preconfigured distance away from the viewer's perspective in which
 /// [MontageCard] instances will exist.
 class MontageLayer {
-  const MontageLayer.manual(this.z, this.speed);
+  const MontageLayer.manual(this.z, this.speed) : debugColor = const Color(0xffcc0000);
+
+  const MontageLayer._(this.z, this.speed, this.debugColor);
 
   /// The z-index at which cards in this layer will live.
   final double z;
@@ -24,16 +26,26 @@ class MontageLayer {
   /// layer to move at 90% of the standard speed.
   final double speed;
 
+  /// A color that allows the viewer to visually distinguish items in one layer
+  /// from items in another.
+  ///
+  /// See also:
+  ///
+  ///  * [PhotosAppController.isShowDebugInfo], which, when true, will cause
+  ///    various debug information to be shown, including items in this layer
+  ///    to have a colored box with this color shown in front of them.
+  final Color debugColor;
+
   static const double _diff = 3700;
 
   /// The layer that is closest to the viewer's perspective.
-  static const MontageLayer front = MontageLayer.manual(_diff, 1);
+  static const MontageLayer front = MontageLayer._(_diff, 1, Color(0x330000ff));
 
   /// The layer that is in between the other two layers.
-  static const MontageLayer middle = MontageLayer.manual(0, 0.95);
+  static const MontageLayer middle = MontageLayer._(0, 0.95, Color(0x3300ff00));
 
   /// The layer that is furthest away from the viewer's perspective.
-  static const MontageLayer back = MontageLayer.manual(-_diff, 0.8);
+  static const MontageLayer back = MontageLayer._(-_diff, 0.8, Color(0x33ff0000));
 
   @override
   bool operator==(Object other) {
@@ -50,15 +62,15 @@ class Montage extends RenderObjectWidget {
   const Montage({
     super.key,
     this.isPerspective = false,
-    this.fovYRadians = math.pi / 4,
+    this.fovYRadians = math.pi * 4 / 10000,
     this.zNear = 1,
     this.zFar = 10,
     this.rotation = 0,
-    this.distance = 0,
-    this.pullback = 0,
-    this.extraPullback = 0,
-    this.topSlop = 0,
-    this.bottomSlop = 0,
+    this.distance = -1900,
+    this.pullback = -5100,
+    this.extraPullback = -7000,
+    this.topSlop = 100,
+    this.bottomSlop = 100,
     this.frame = 0,
     required this.children,
   });
