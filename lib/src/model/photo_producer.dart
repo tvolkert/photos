@@ -17,7 +17,7 @@ abstract class PhotoProducer {
   Future<Photo> produce({
     required BuildContext context,
     required Size sizeConstraints,
-    required double scaleMultiplier,
+    double scaleMultiplier = 1,
   });
 }
 
@@ -92,7 +92,7 @@ class GooglePhotosPhotoProducer extends PhotoProducer {
   Future<Photo> produce({
     required BuildContext context,
     required Size sizeConstraints,
-    required double scaleMultiplier,
+    double scaleMultiplier = 1,
   }) async {
     final ui.FlutterView window = View.of(context);
 
@@ -177,7 +177,7 @@ class AssetPhotoProducer extends PhotoProducer {
   Future<Photo> produce({
     required BuildContext context,
     required Size sizeConstraints,
-    required double scaleMultiplier,
+    double scaleMultiplier = 1,
   }) async {
     final String assetName = _assets[_nextAssetIndex];
     final AssetImage asset = AssetImage(assetName);
@@ -190,8 +190,8 @@ class AssetPhotoProducer extends PhotoProducer {
       image: ResizeImage(
         asset,
         policy: ResizeImagePolicy.fit,
-        width: sizeConstraints.width.toInt(),
-        height: sizeConstraints.height.toInt(),
+        width: (sizeConstraints.width * scale).toInt(),
+        height: (sizeConstraints.height * scale).toInt(),
       ),
     );
   }
@@ -205,7 +205,7 @@ class StaticPhotoProducer extends PhotoProducer {
   Future<Photo> produce({
     required BuildContext context,
     required Size sizeConstraints,
-    required double scaleMultiplier,
+    double scaleMultiplier = 1,
   }) async {
     const Size staticSize = Size(429, 429);
     final MediaItem staticMediaItem = MediaItem(

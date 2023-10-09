@@ -384,7 +384,6 @@ class _PhotoCardState extends State<PhotoCard> {
     Future<Photo> future = _photoFuture = ContentProducer.of(context).producePhoto(
       context: context,
       sizeConstraints: Size.square(constraints.transformedExtent),
-      scaleMultiplier: 1,
     );
     future.then<void>((Photo photo) {
       assert(_photoFuture == future);
@@ -472,7 +471,6 @@ class _PhotoCardState extends State<PhotoCard> {
     if (_imageInfo == null) {
       child = Container();
     } else {
-      // debugPrint('building raw image (${_imageInfo!.image.width}x${_imageInfo!.image.height}) :: ${constraints.transformedExtent}');
       child = RawImage(
         image: _imageInfo!.image,
         scale: _imageInfo!.scale,

@@ -42,7 +42,7 @@ abstract class ContentProducerController {
   ///  * [PhotoProducer], which does the actual work of producing the photo.
   Future<Photo> producePhoto({
     required Size sizeConstraints,
-    required double scaleMultiplier,
+    double scaleMultiplier = 1,
     BuildContext? context,
   });
 }
@@ -60,7 +60,7 @@ class _ContentProducerState extends State<ContentProducer> implements ContentPro
   @override
   Future<Photo> producePhoto({
     required Size sizeConstraints,
-    required double scaleMultiplier,
+    double scaleMultiplier = 1,
     BuildContext? context,
   }) {
     context ??= this.context;

@@ -299,6 +299,7 @@ class RenderMontage extends RenderBox {
     double distance = 0,
     double pullback = 0,
     double extraPullback = 0,
+    bool isRoundTransformedExtent = true,
     int frame = 0,
   }) : _children = List<RenderMontageCard?>.filled(childCount, null),
        _isPerspective = isPerspective,
@@ -309,6 +310,7 @@ class RenderMontage extends RenderBox {
        _distance = distance,
        _pullback = pullback,
        _extraPullback = extraPullback,
+       _isRoundTransformedExtent = isRoundTransformedExtent,
        _frame = frame;
 
   final List<RenderMontageCard?> _children;
@@ -403,6 +405,15 @@ class RenderMontage extends RenderBox {
     if (_extraPullback != value) {
       _extraPullback = value;
       markNeedsFullTransform();
+    }
+  }
+
+  bool _isRoundTransformedExtent;
+  bool get isRoundTransformedExtent => _isRoundTransformedExtent;
+  set isRoundTransformedExtent(bool value) {
+    if (_isRoundTransformedExtent != value) {
+      _isRoundTransformedExtent = value;
+      markNeedsLayout();
     }
   }
 
@@ -605,9 +616,14 @@ class RenderMontage extends RenderBox {
 
   @override
   void performLayout() {
-    final double childExtent = size.width / 1;
+    double childExtent = size.width / 1;
     visitChildrenUntil((RenderMontageCard child) {
-      final double transformedExtent = _getTransformedExtent(child, childExtent);
+      double transformedExtent = _getTransformedExtent(child, childExtent);
+      if (isRoundTransformedExtent) {
+        final double scale = childExtent / transformedExtent;
+        childExtent = transformedExtent.floorToDouble() * scale;
+        transformedExtent = childExtent / scale;
+      }
       child.layout(MontageCardConstraints(extent: childExtent, transformedExtent: transformedExtent));
       return false;
     });
@@ -789,7 +805,7 @@ class RenderMontageCard extends RenderProxyBox with RenderConstrainedLayoutBuild
   bool get sizedByParent => true;
 
   @override
-  Size computeDryLayout(BoxConstraints constraints) {
+  Size computeDryLayout(covariant MontageCardConstraints constraints) {
     return constraints.biggest;
   }
 

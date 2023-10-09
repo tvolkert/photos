@@ -13,7 +13,11 @@ class PhotosShortcutManager extends ShortcutManager {
 
   static const Map<ShortcutActivator, Intent> _shortcuts = <ShortcutActivator, Intent>{
     SingleActivator(LogicalKeyboardKey.arrowLeft): RewindIntent(),
+    SingleActivator(LogicalKeyboardKey.mediaRewind): RewindIntent(),
+    SingleActivator(LogicalKeyboardKey.mediaSkipBackward): RewindIntent(),
     SingleActivator(LogicalKeyboardKey.arrowRight): FastForwardIntent(),
+    SingleActivator(LogicalKeyboardKey.mediaFastForward): FastForwardIntent(),
+    SingleActivator(LogicalKeyboardKey.mediaSkipForward): FastForwardIntent(),
     SingleActivator(LogicalKeyboardKey.arrowUp): ZoomIntent(),
     SingleActivator(LogicalKeyboardKey.arrowDown): ShrinkIntent(),
   };
