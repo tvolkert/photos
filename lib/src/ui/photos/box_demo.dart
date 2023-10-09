@@ -461,24 +461,17 @@ class _MontageControllerState extends State<MontageController> with SingleTicker
         child: Stack(
           fit: StackFit.passthrough,
           children: [
-            LayoutBuilder(
-              builder: (BuildContext context, BoxConstraints constraints) {
-                final double slop = constraints.maxHeight * 0.5 * 0;
-                return Montage(
-                  isPerspective: isPerspective,
-                  fovYRadians: fovYRadians,
-                  zNear: zNearValue,
-                  zFar: zFarValue,
-                  rotation: rotationAnimation.value,
-                  distance: distanceValue,
-                  pullback: pullbackValue,
-                  extraPullback: extraPullbackAnimation.value,
-                  topSlop: slop,
-                  bottomSlop: slop,
-                  frame: frame,
-                  children: cards ??= buildCards(context),
-                );
-              }
+            Montage(
+              isPerspective: isPerspective,
+              fovYRadians: fovYRadians,
+              zNear: zNearValue,
+              zFar: zFarValue,
+              rotation: rotationAnimation.value,
+              distance: distanceValue,
+              pullback: pullbackValue,
+              extraPullback: extraPullbackAnimation.value,
+              frame: frame,
+              children: cards ??= buildCards(context),
             ),
             Align(
               alignment: Alignment.bottomRight,

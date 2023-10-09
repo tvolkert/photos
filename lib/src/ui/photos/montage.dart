@@ -1,9 +1,9 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-import 'package:flutter/rendering.dart' hide debugPrint;
+import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:flutter/widgets.dart' hide debugPrint;
+import 'package:flutter/widgets.dart';
 import 'package:photos/src/ui/common/debug.dart';
 import 'package:vector_math/vector_math_64.dart';
 
@@ -12,9 +12,12 @@ typedef MontageCardReloadHandler = void Function(MontageCardConstraints constrai
 /// A preconfigured distance away from the viewer's perspective in which
 /// [MontageCard] instances will exist.
 class MontageLayer {
-  const MontageLayer.manual(this.z, this.speed) : debugColor = const Color(0xffcc0000);
+  const MontageLayer.manual(this.z, this.speed) :
+      slop = 0.3,
+      debugColor = const Color(0xffcc0000);
 
-  const MontageLayer._(this.z, this.speed, this.debugColor);
+  const MontageLayer._(this.z, this.speed, this.slop, this.debugColor) :
+      assert(slop >= 0);
 
   /// The z-index at which cards in this layer will live.
   final double z;
@@ -25,6 +28,15 @@ class MontageLayer {
   /// cards normally would move. So a value of `0.9` would cause cards in this
   /// layer to move at 90% of the standard speed.
   final double speed;
+
+  /// The percentage of the screen height that cards will overflow on the top
+  /// and the bottom before wrapping around and reloading.
+  ///
+  /// A value of zero would make cards wrap and reload as soon as they move off
+  /// the top of the screen.
+  ///
+  /// This value must be greater than or equal to zero.
+  final double slop;
 
   /// A color that allows the viewer to visually distinguish items in one layer
   /// from items in another.
@@ -39,13 +51,13 @@ class MontageLayer {
   static const double _diff = 3700;
 
   /// The layer that is closest to the viewer's perspective.
-  static const MontageLayer front = MontageLayer._(_diff, 1, Color(0x330000ff));
+  static const MontageLayer front = MontageLayer._(_diff, 1, 2.2, Color(0x330000ff));
 
   /// The layer that is in between the other two layers.
-  static const MontageLayer middle = MontageLayer._(0, 0.95, Color(0x3300ff00));
+  static const MontageLayer middle = MontageLayer._(0, 0.95, 0.65, Color(0x3300ff00));
 
   /// The layer that is furthest away from the viewer's perspective.
-  static const MontageLayer back = MontageLayer._(-_diff, 0.8, Color(0x33ff0000));
+  static const MontageLayer back = MontageLayer._(-_diff, 0.8, 0.25, Color(0x33ff0000));
 
   @override
   bool operator==(Object other) {
@@ -69,8 +81,6 @@ class Montage extends RenderObjectWidget {
     this.distance = -1900,
     this.pullback = -5100,
     this.extraPullback = -7000,
-    this.topSlop = 100,
-    this.bottomSlop = 100,
     this.frame = 0,
     required this.children,
   });
@@ -83,8 +93,6 @@ class Montage extends RenderObjectWidget {
   final double distance;
   final double pullback;
   final double extraPullback;
-  final double topSlop;
-  final double bottomSlop;
   final int frame;
 
   /// Each widget in this list must either be an instance of [MontageCard] or a
@@ -110,8 +118,6 @@ class Montage extends RenderObjectWidget {
       distance: distance,
       pullback: pullback,
       extraPullback: extraPullback,
-      topSlop: topSlop,
-      bottomSlop: bottomSlop,
       frame: frame,
     );
   }
@@ -127,8 +133,6 @@ class Montage extends RenderObjectWidget {
         ..distance = distance
         ..pullback = pullback
         ..extraPullback = extraPullback
-        ..topSlop = topSlop
-        ..bottomSlop = bottomSlop
         ..frame = frame;
   }
 }
@@ -295,8 +299,6 @@ class RenderMontage extends RenderBox {
     double distance = 0,
     double pullback = 0,
     double extraPullback = 0,
-    double topSlop = 0,
-    double bottomSlop = 0,
     int frame = 0,
   }) : _children = List<RenderMontageCard?>.filled(childCount, null),
        _isPerspective = isPerspective,
@@ -307,8 +309,6 @@ class RenderMontage extends RenderBox {
        _distance = distance,
        _pullback = pullback,
        _extraPullback = extraPullback,
-       _topSlop = topSlop,
-       _bottomSlop = bottomSlop,
        _frame = frame;
 
   final List<RenderMontageCard?> _children;
@@ -403,24 +403,6 @@ class RenderMontage extends RenderBox {
     if (_extraPullback != value) {
       _extraPullback = value;
       markNeedsFullTransform();
-    }
-  }
-
-  double _topSlop;
-  double get topSlop => _topSlop;
-  set topSlop(double value) {
-    if (value != _topSlop) {
-      _topSlop = value;
-      markNeedsPaint();
-    }
-  }
-
-  double _bottomSlop;
-  double get bottomSlop => _bottomSlop;
-  set bottomSlop(double value) {
-    if (value != _bottomSlop) {
-      _bottomSlop = value;
-      markNeedsPaint();
     }
   }
 
@@ -755,10 +737,12 @@ class RenderMontageCard extends RenderProxyBox with RenderConstrainedLayoutBuild
 
   double _y = 0;
   double get y {
-    final double localSpaceTop = solveY(-constraints.transformedHeight - parent!.topSlop);
-    final double localSpaceBottom = solveY(parent!.size.height + parent!.bottomSlop);
+    final double parentHeight = parent!.size.height;
+    final double localSpaceTop = solveY(-constraints.transformedHeight - montageLayer.slop * parentHeight);
+    final double localSpaceBottom = solveY(parentHeight + montageLayer.slop * parentHeight);
     final double localSpaceSpan = localSpaceBottom - localSpaceTop;
-    final double y = localSpaceTop + localSpaceSpan - ((baseY + parent!.frame * montageLayer.speed) % localSpaceSpan);
+    final double base = baseY * localSpaceSpan;
+    final double y = localSpaceBottom - (base + parent!.frame * montageLayer.speed) % localSpaceSpan;
     if (y != _y) {
       if ((_y - localSpaceTop).abs() <= _reloadTolerance &&
           (y - localSpaceBottom).abs() <= _reloadTolerance) {

@@ -115,10 +115,24 @@ class MontageContainer extends StatelessWidget {
     int nextKeyIndex = 1;
     CardKey newKey() => CardKey(nextKeyIndex++);
     return <PhotoCard>[
-      PhotoCard(xPercentage: 0.96, baseY: 1200, layer: MontageLayer.back, key: newKey()),
-      PhotoCard(xPercentage: 0.02, baseY: 0, layer: MontageLayer.middle, key: newKey()),
-      PhotoCard(xPercentage: 0.81, baseY: 1500, layer: MontageLayer.middle, key: newKey()),
-      PhotoCard(xPercentage: 0.40, baseY: 1200, layer: MontageLayer.front, key: newKey()),
+      PhotoCard(xPercentages: const <double>[0.07], baseY: 0.90, layer: MontageLayer.back, key: newKey()),
+      PhotoCard(xPercentages: const <double>[0.54], baseY: 0.70, layer: MontageLayer.back, key: newKey()),
+      PhotoCard(xPercentages: const <double>[0.96], baseY: 0.50, layer: MontageLayer.back, key: newKey()),
+      PhotoCard(xPercentages: const <double>[0.04], baseY: 0.40, layer: MontageLayer.back, key: newKey()),
+      PhotoCard(xPercentages: const <double>[0.35], baseY: 0.20, layer: MontageLayer.back, key: newKey()),
+      PhotoCard(xPercentages: const <double>[0.79], baseY: 0.10, layer: MontageLayer.back, key: newKey()),
+      PhotoCard(xPercentages: const <double>[0.01], baseY: 0.90, layer: MontageLayer.middle, key: newKey()),
+      PhotoCard(xPercentages: const <double>[0.47], baseY: 0.80, layer: MontageLayer.middle, key: newKey()),
+      PhotoCard(xPercentages: const <double>[0.85], baseY: 0.60, layer: MontageLayer.middle, key: newKey()),
+      PhotoCard(xPercentages: const <double>[0.05], baseY: 0.50, layer: MontageLayer.middle, key: newKey()),
+      PhotoCard(xPercentages: const <double>[0.50], baseY: 0.38, layer: MontageLayer.middle, key: newKey()),
+      PhotoCard(xPercentages: const <double>[0.90], baseY: 0.25, layer: MontageLayer.middle, key: newKey()),
+      PhotoCard(xPercentages: const <double>[0.15], baseY: 0.15, layer: MontageLayer.middle, key: newKey()),
+      PhotoCard(xPercentages: const <double>[0.85], baseY: 0.00, layer: MontageLayer.middle, key: newKey()),
+      PhotoCard(xPercentages: const <double>[0.10], baseY: 0.90, layer: MontageLayer.front, key: newKey()),
+      PhotoCard(xPercentages: const <double>[0.90], baseY: 0.70, layer: MontageLayer.front, key: newKey()),
+      PhotoCard(xPercentages: const <double>[0.20], baseY: 0.45, layer: MontageLayer.front, key: newKey()),
+      PhotoCard(xPercentages: const <double>[0.75], baseY: 0.20, layer: MontageLayer.front, key: newKey()),
     ];
   }
 
@@ -175,13 +189,13 @@ class _MontageFrameDriverState extends State<MontageFrameDriver> {
   void _handleRewind(Intent intent) {
     _cancelFrame();
     _scheduleResume();
-    setState(() => _currentFrame -= 10);
+    setState(() => _currentFrame -= 20);
   }
 
   void _handleFastForward(Intent intent) {
     _cancelFrame();
     _scheduleResume();
-    setState(() => _currentFrame+= 10);
+    setState(() => _currentFrame+= 20);
   }
 
   void _scheduleResume() {
@@ -247,8 +261,6 @@ class MontageSpinner extends StatefulWidget {
     this.distance = -1900,
     this.pullback = -5100,
     this.extraPullback = -7000,
-    this.topSlop = 0,
-    this.bottomSlop = 0,
     this.frame = 0,
     this.children = const <Widget>[],
   });
@@ -261,8 +273,6 @@ class MontageSpinner extends StatefulWidget {
   final double distance;
   final double pullback;
   final double extraPullback;
-  final double topSlop;
-  final double bottomSlop;
   final int frame;
   final List<Widget> children;
 
@@ -328,8 +338,6 @@ class _MontageSpinnerState extends State<MontageSpinner> with SingleTickerProvid
       distance: widget.distance,
       pullback: widget.pullback,
       extraPullback: distance.value,
-      topSlop: widget.topSlop,
-      bottomSlop: widget.bottomSlop,
       frame: widget.frame,
       children: widget.children,
     );
@@ -343,14 +351,14 @@ class _MontageSpinnerState extends State<MontageSpinner> with SingleTickerProvid
 class PhotoCard extends StatefulWidget {
   const PhotoCard({
     super.key,
-    required this.xPercentage,
+    required this.xPercentages,
     required this.baseY,
     required this.layer,
     this.useShadow = false,
     this.debugImageLabel,
-  });
+  }) : assert(xPercentages.length > 0);
 
-  final double xPercentage;
+  final List<double> xPercentages;
   final double baseY;
   final MontageLayer layer;
   final bool useShadow;
@@ -367,6 +375,7 @@ class _PhotoCardState extends State<PhotoCard> {
   ImageInfo? _imageInfo;
   int _updateCount = 0;
   bool _isShowDebugInfo = false;
+  int _xPercentageIndex = 0;
 
   late final ImageStreamListener _imageStreamListener;
 
@@ -450,6 +459,9 @@ class _PhotoCardState extends State<PhotoCard> {
 
   void _handleReload(MontageCardConstraints constraints) {
     _producePhoto(constraints);
+    setState(() {
+      _xPercentageIndex = (_xPercentageIndex + 1) % widget.xPercentages.length;
+    });
   }
 
   Widget _buildChild(BuildContext context, MontageCardConstraints constraints) {
@@ -508,7 +520,8 @@ class _PhotoCardState extends State<PhotoCard> {
         decoration: BoxDecoration(
           boxShadow: [
             BoxShadow(
-              blurRadius: 50 * constraints.scale,
+              blurRadius: 20 * constraints.scale,
+              color: const Color(0x66000000),
             ),
           ],
         ),
@@ -554,7 +567,7 @@ class _PhotoCardState extends State<PhotoCard> {
   @override
   Widget build(BuildContext context) {
     return MontageCard(
-      xPercentage: widget.xPercentage,
+      xPercentage: widget.xPercentages[_xPercentageIndex],
       baseY: widget.baseY,
       layer: widget.layer,
       updateCount: _updateCount,
