@@ -463,10 +463,11 @@ class _PhotoCardState extends State<PhotoCard> {
     });
   }
 
+  void _handleFirstLayoutIsBelowFold(MontageCardConstraints constraints) {
+    _producePhoto(constraints);
+  }
+
   Widget _buildChild(BuildContext context, MontageCardConstraints constraints) {
-    if (_photoFuture == null && _currentPhoto == null) {
-      _producePhoto(constraints);
-    }
     Widget child;
     if (_imageInfo == null) {
       child = Container();
@@ -570,6 +571,7 @@ class _PhotoCardState extends State<PhotoCard> {
       layer: widget.layer,
       updateCount: _updateCount,
       onReload: _handleReload,
+      onFirstLayoutIsBelowFold: _handleFirstLayoutIsBelowFold,
       builder: _buildChild,
     );
   }

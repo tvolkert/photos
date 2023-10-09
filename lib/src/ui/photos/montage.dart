@@ -7,7 +7,7 @@ import 'package:flutter/widgets.dart';
 import 'package:photos/src/ui/common/debug.dart';
 import 'package:vector_math/vector_math_64.dart';
 
-typedef MontageCardReloadHandler = void Function(MontageCardConstraints constraints);
+typedef MontageCardLoadHandler = void Function(MontageCardConstraints constraints);
 
 /// A preconfigured distance away from the viewer's perspective in which
 /// [MontageCard] instances will exist.
@@ -668,7 +668,8 @@ class MontageCard extends ConstrainedLayoutBuilder<MontageCardConstraints> {
     required this.xPercentage,
     required this.baseY,
     required this.layer,
-    required this.onReload,
+    this.onReload = _defaultHandleMontageCardLoad,
+    this.onFirstLayoutIsBelowFold = _defaultHandleMontageCardLoad,
     required this.updateCount,
     required super.builder,
   });
@@ -676,8 +677,13 @@ class MontageCard extends ConstrainedLayoutBuilder<MontageCardConstraints> {
   final double xPercentage;
   final double baseY;
   final MontageLayer layer;
-  final MontageCardReloadHandler onReload;
+  final MontageCardLoadHandler onReload;
+  final MontageCardLoadHandler onFirstLayoutIsBelowFold;
   final int updateCount;
+
+  static void _defaultHandleMontageCardLoad(MontageCardConstraints constraints) {
+    // No-op
+  }
 
   @override
   RenderMontageCard createRenderObject(BuildContext context) {
@@ -686,6 +692,7 @@ class MontageCard extends ConstrainedLayoutBuilder<MontageCardConstraints> {
       baseY: baseY,
       layer: layer,
       onReload: onReload,
+      onFirstLayoutIsBelowFold: onFirstLayoutIsBelowFold,
     );
   }
 
@@ -695,7 +702,8 @@ class MontageCard extends ConstrainedLayoutBuilder<MontageCardConstraints> {
         ..xPercentage = xPercentage
         ..baseY = baseY
         ..montageLayer = layer
-        ..onReload = onReload;
+        ..onReload = onReload
+        ..onFirstLayoutIsBelowFold = onFirstLayoutIsBelowFold;
   }
 
   @override
@@ -710,11 +718,13 @@ class RenderMontageCard extends RenderProxyBox with RenderConstrainedLayoutBuild
     double xPercentage = 0,
     double baseY = 0,
     MontageLayer layer = MontageLayer.middle,
-    required MontageCardReloadHandler onReload,
+    required MontageCardLoadHandler onReload,
+    required MontageCardLoadHandler onFirstLayoutIsBelowFold,
   }) : _xPercentage = xPercentage,
        _baseY = baseY,
        _montageLayer = layer,
-       _onReload = onReload;
+       _onReload = onReload,
+       _onFirstLayoutIsBelowFold = onFirstLayoutIsBelowFold;
 
   static const double _reloadTolerance = 50;
 
@@ -751,7 +761,9 @@ class RenderMontageCard extends RenderProxyBox with RenderConstrainedLayoutBuild
     }
   }
 
-  double _y = 0;
+  // Initial value is sufficiently large to avoid accidentally triggering
+  // [onReload] when [y] is first calculated.
+  double _y = _reloadTolerance + 1;
   double get y {
     final double parentHeight = parent!.size.height;
     final double localSpaceTop = solveY(-constraints.transformedHeight - montageLayer.slop * parentHeight);
@@ -787,11 +799,43 @@ class RenderMontageCard extends RenderProxyBox with RenderConstrainedLayoutBuild
     }
   }
 
-  MontageCardReloadHandler _onReload;
-  MontageCardReloadHandler get onReload => _onReload;
-  set onReload(MontageCardReloadHandler callback) {
+  MontageCardLoadHandler _onReload;
+  MontageCardLoadHandler get onReload => _onReload;
+  set onReload(MontageCardLoadHandler callback) {
     if (callback != _onReload) {
       _onReload = callback;
+    }
+  }
+
+  MontageCardLoadHandler _onFirstLayoutIsBelowFold;
+  MontageCardLoadHandler get onFirstLayoutIsBelowFold => _onFirstLayoutIsBelowFold;
+  set onFirstLayoutIsBelowFold(MontageCardLoadHandler callback) {
+    if (callback != _onFirstLayoutIsBelowFold) {
+      _onFirstLayoutIsBelowFold = callback;
+    }
+  }
+
+  bool _isFirstLayout = true;
+  void _handleFirstLayout() {
+    assert(_isFirstLayout);
+    _isFirstLayout = false;
+
+    // This is an optimization of the following code made possible by
+    // knowing the overall structure of `parent!.fullTransformSansRotation`:
+    //
+    // ```dart
+    // Vector4 point = Vector4(0, y, montageLayer.z, 1);
+    // parent!.fullTransformSansRotation.transform(point);
+    // double parentSpaceY = point.y / point.w;
+    // ```
+    final Float64List transform = parent!.fullTransformSansRotation.storage;
+    final ty = transform[5] * y + transform[9] * montageLayer.z;
+    final tw = transform[11] * montageLayer.z + transform[15];
+    final double parentSpaceY = ty / tw;
+
+    if (parentSpaceY > parent!.size.height) {
+      // This card has not yet appeared on screen.
+      onFirstLayoutIsBelowFold(constraints);
     }
   }
 
@@ -814,6 +858,9 @@ class RenderMontageCard extends RenderProxyBox with RenderConstrainedLayoutBuild
     markNeedsX();
     rebuildIfNecessary();
     child?.layout(constraints);
+    if (_isFirstLayout) {
+      _handleFirstLayout();
+    }
   }
 
   double solveX(double outputX) {
