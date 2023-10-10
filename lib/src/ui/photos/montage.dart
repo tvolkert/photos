@@ -757,7 +757,7 @@ class RenderMontageCard extends RenderProxyBox with RenderConstrainedLayoutBuild
        _onReload = onReload,
        _onFirstLayoutIsBelowFold = onFirstLayoutIsBelowFold;
 
-  static const double _reloadTolerance = 50;
+  static const double _reloadTolerance = 0.9;
 
   double _xPercentage;
   double get xPercentage => _xPercentage;
@@ -803,9 +803,8 @@ class RenderMontageCard extends RenderProxyBox with RenderConstrainedLayoutBuild
     final double base = baseY * localSpaceSpan;
     final double y = localSpaceBottom - (base + parent!.frame * parent!.pixelsPerFrame * montageLayer.speed) % localSpaceSpan;
     if (y != _y) {
-      double tolerance = _reloadTolerance * parent!.pixelsPerFrame;
-      if ((_y - localSpaceTop).abs() <= tolerance &&
-          (y - localSpaceBottom).abs() <= tolerance) {
+      double percentJump = (y - _y).abs() / localSpaceSpan;
+      if (percentJump >= _reloadTolerance) {
         SchedulerBinding.instance.addPostFrameCallback((Duration timeStamp) {
           // The reload handler is likely to want to trigger a rebuild, which
           // isn't allowed during layout, so we schedule it post-frame.
