@@ -59,6 +59,8 @@ class _MontageControllerState extends State<MontageController> with SingleTicker
   double gX = 0.81;
   double bX = 0.40;
   bool useShadow = true;
+  double pixelsPerFrame = 1;
+  double pixelsPerFrameScale = 0;
 
   final List<Color> cardColors = <Color>[
     const Color(0xffcccc00),
@@ -90,6 +92,8 @@ class _MontageControllerState extends State<MontageController> with SingleTicker
     _getBX,
     _getFrame,
     _getUseShadow,
+    _getPixelsPerFrame,
+    _getPixelsPerFrameScale,
   ];
   late final List<UpDownHandler> _upDownHandlers = <UpDownHandler>[
     _updateIsPerspective,
@@ -114,6 +118,8 @@ class _MontageControllerState extends State<MontageController> with SingleTicker
     _updateBX,
     _updateFrame,
     _updateUseShadow,
+    _updatePixelsPerFrame,
+    _updatePixelsPerFrameScale,
   ];
 
   void _scheduleFrame({bool rescheduling = false}) {
@@ -185,7 +191,11 @@ class _MontageControllerState extends State<MontageController> with SingleTicker
       } else if (event.logicalKey == LogicalKeyboardKey.keyL) {
         _setHandler(20);
       } else if (event.logicalKey == LogicalKeyboardKey.keyM) {
-        _setHandler(20);
+        _setHandler(21);
+      } else if (event.logicalKey == LogicalKeyboardKey.keyN) {
+        _setHandler(22);
+      } else if (event.logicalKey == LogicalKeyboardKey.keyO) {
+        _setHandler(23);
       }
     }
     return KeyEventResult.handled;
@@ -212,6 +222,8 @@ class _MontageControllerState extends State<MontageController> with SingleTicker
   double get extraPullbackValue => extraPullback * extraPullbackScaleMultiplier;
   double get zDiffScaleMultiplier => math.pow(10, zDiffScale).toDouble();
   double get zDiffValue => zDiff * zDiffScaleMultiplier;
+  double get pixelsPerFrameScaleMultiplier => math.pow(10, pixelsPerFrameScale).toDouble();
+  double get pixelsPerFrameValue => pixelsPerFrame * pixelsPerFrameScaleMultiplier;
 
   (String, bool) _getIsPerspective() => ('isPerspective', isPerspective);
   (String, String) _getFovYRadians() => ('fovYRadians', '($fov / $fovScaleMultiplier)π');
@@ -235,6 +247,8 @@ class _MontageControllerState extends State<MontageController> with SingleTicker
   (String, double) _getBX() => ('bX', bX);
   (String, int) _getFrame() => ('frame', frame);
   (String, bool) _getUseShadow() => ('useShadow', useShadow);
+  (String, double) _getPixelsPerFrame() => ('pixelsPerFrame', pixelsPerFrameValue.toPrecision(5));
+  (String, double) _getPixelsPerFrameScale() => ('pixelsPerFrameScale', pixelsPerFrameScaleMultiplier);
 
   int _getIntValue(UpDown upDown) {
     int value = 1;
@@ -395,6 +409,18 @@ class _MontageControllerState extends State<MontageController> with SingleTicker
     });
   }
 
+  void _updatePixelsPerFrame(UpDown upDown) {
+    setState(() {
+      pixelsPerFrame += _getDoubleValue(upDown);
+    });
+  }
+
+  void _updatePixelsPerFrameScale(UpDown upDown) {
+    setState(() {
+      pixelsPerFrameScale += _getIntValue(upDown);
+    });
+  }
+
   void _initExtraPullbackAnimation() {
     extraPullbackAnimation = TweenSequence<double>(
       <TweenSequenceItem<double>>[
@@ -483,6 +509,7 @@ class _MontageControllerState extends State<MontageController> with SingleTicker
               distance: distanceValue,
               pullback: pullbackValue,
               extraPullback: extraPullbackAnimation.value,
+              pixelsPerFrame: pixelsPerFrameValue,
               frame: frame,
               children: cards ??= buildCards(context),
             ),
