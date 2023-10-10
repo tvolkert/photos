@@ -77,6 +77,7 @@ class Montage extends RenderObjectWidget {
     this.fovYRadians = math.pi * 4 / 10000,
     this.zNear = 1,
     this.zFar = 10,
+    this.cardScale = 1,
     this.rotation = 0,
     this.distance = -1900,
     this.pullback = -5100,
@@ -89,6 +90,7 @@ class Montage extends RenderObjectWidget {
   final double fovYRadians;
   final double zNear;
   final double zFar;
+  final double cardScale;
   final double rotation;
   final double distance;
   final double pullback;
@@ -114,6 +116,7 @@ class Montage extends RenderObjectWidget {
       fovYRadians: fovYRadians,
       zNear: zNear,
       zFar: zFar,
+      cardScale: cardScale,
       rotation: rotation,
       distance: distance,
       pullback: pullback,
@@ -129,6 +132,7 @@ class Montage extends RenderObjectWidget {
         ..fovYRadians = fovYRadians
         ..zNear = zNear
         ..zFar = zFar
+        ..cardScale = cardScale
         ..rotation = rotation
         ..distance = distance
         ..pullback = pullback
@@ -295,6 +299,7 @@ class RenderMontage extends RenderBox {
     double fovYRadians = math.pi / 4,
     double zNear = 0,
     double zFar = 0,
+    double cardScale = 1,
     double rotation = 0,
     double distance = 0,
     double pullback = 0,
@@ -306,6 +311,7 @@ class RenderMontage extends RenderBox {
        _fovYRadians = fovYRadians,
        _zNear = zNear,
        _zFar = zFar,
+       _cardScale = cardScale,
        _rotation = rotation,
        _distance = distance,
        _pullback = pullback,
@@ -362,6 +368,15 @@ class RenderMontage extends RenderBox {
       if (isPerspective) {
         markNeedsBaseTransform();
       }
+    }
+  }
+
+  double _cardScale;
+  double get cardScale => _cardScale;
+  set cardScale(double value) {
+    if (value != _cardScale) {
+      _cardScale = value;
+      markNeedsLayout();
     }
   }
 
@@ -616,7 +631,7 @@ class RenderMontage extends RenderBox {
 
   @override
   void performLayout() {
-    double childExtent = size.width / 1;
+    double childExtent = size.width / cardScale;
     visitChildrenUntil((RenderMontageCard child) {
       double transformedExtent = _getTransformedExtent(child, childExtent);
       if (isRoundTransformedExtent) {

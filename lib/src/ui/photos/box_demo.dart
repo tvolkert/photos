@@ -44,6 +44,7 @@ class _MontageControllerState extends State<MontageController> with SingleTicker
   double zNear = 1;
   double zFar = 10;
   int zScale = 0;
+  double cardScale = 1;
   double distance = -19;
   int distanceScale = 2;
   int currentField = 3;
@@ -73,6 +74,7 @@ class _MontageControllerState extends State<MontageController> with SingleTicker
     _getZNear,
     _getZFar,
     _getZScale,
+    _getCardScale,
     _getDistance,
     _getDistanceScale,
     _getPullback,
@@ -96,6 +98,7 @@ class _MontageControllerState extends State<MontageController> with SingleTicker
     _updateZNear,
     _updateZFar,
     _updateZScale,
+    _updateCardScale,
     _updateDistance,
     _updateDistanceScale,
     _updatePullback,
@@ -181,6 +184,8 @@ class _MontageControllerState extends State<MontageController> with SingleTicker
         _setHandler(19);
       } else if (event.logicalKey == LogicalKeyboardKey.keyL) {
         _setHandler(20);
+      } else if (event.logicalKey == LogicalKeyboardKey.keyM) {
+        _setHandler(20);
       }
     }
     return KeyEventResult.handled;
@@ -214,6 +219,7 @@ class _MontageControllerState extends State<MontageController> with SingleTicker
   (String, double) _getZNear() => ('zNear', zNearValue);
   (String, double) _getZFar() => ('zFar', zFarValue);
   (String, double) _getZScale() => ('zScale', zScaleMultiplier);
+  (String, double) _getCardScale() => ('cardScale', cardScale);
   (String, double) _getDistance() => ('distance', distanceValue.toPrecision(5));
   (String, double) _getDistanceScale() => ('distanceScale', distanceScaleMultiplier);
   (String, double) _getPullback() => ('pullback', pullbackValue.toPrecision(5));
@@ -273,6 +279,12 @@ class _MontageControllerState extends State<MontageController> with SingleTicker
   void _updateZScale(UpDown upDown) {
     setState(() {
       zScale += _getIntValue(upDown);
+    });
+  }
+
+  void _updateCardScale(UpDown upDown) {
+    setState(() {
+      cardScale += _getDoubleValue(upDown);
     });
   }
 
@@ -407,28 +419,28 @@ class _MontageControllerState extends State<MontageController> with SingleTicker
       PhotoCard(
         initialColor: const Color(0xffcccc00),
         xPercentage: yX,
-        baseY: 1200,
+        baseY: 0.2,
         layer: MontageLayer.manual(-zDiffValue, 0.80),
         useShadow: useShadow,
       ),
       PhotoCard(
         initialColor: const Color(0xffcc0000),
         xPercentage: rX,
-        baseY: 0,
+        baseY: 0.4,
         layer: const MontageLayer.manual(0, 0.95),
         useShadow: useShadow,
       ),
       PhotoCard(
         initialColor: const Color(0xff00cc00),
         xPercentage: gX,
-        baseY: 1500,
+        baseY: 0.7,
         layer: const MontageLayer.manual(0, 0.95),
         useShadow: useShadow,
       ),
       PhotoCard(
         initialColor: const Color(0xff0000cc),
         xPercentage: bX,
-        baseY: 1200,
+        baseY: 0.5,
         layer: MontageLayer.manual(zDiffValue, 1),
         useShadow: useShadow,
       ),
@@ -466,6 +478,7 @@ class _MontageControllerState extends State<MontageController> with SingleTicker
               fovYRadians: fovYRadians,
               zNear: zNearValue,
               zFar: zFarValue,
+              cardScale: cardScale,
               rotation: rotationAnimation.value,
               distance: distanceValue,
               pullback: pullbackValue,
