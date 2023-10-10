@@ -13,7 +13,7 @@ typedef MontageCardLoadHandler = void Function(MontageCardConstraints constraint
 /// [MontageCard] instances will exist.
 class MontageLayer {
   const MontageLayer.manual(this.z, this.speed) :
-      slop = 0.3,
+      slop = 0,
       debugColor = const Color(0xffcc0000);
 
   const MontageLayer._(this.z, this.speed, this.slop, this.debugColor) :
@@ -82,6 +82,7 @@ class Montage extends RenderObjectWidget {
     this.distance = -1900,
     this.pullback = -5100,
     this.extraPullback = -7000,
+    this.pixelsPerFrame = 1,
     this.frame = 0,
     required this.children,
   });
@@ -95,6 +96,7 @@ class Montage extends RenderObjectWidget {
   final double distance;
   final double pullback;
   final double extraPullback;
+  final double pixelsPerFrame;
   final int frame;
 
   /// Each widget in this list must either be an instance of [MontageCard] or a
@@ -121,6 +123,7 @@ class Montage extends RenderObjectWidget {
       distance: distance,
       pullback: pullback,
       extraPullback: extraPullback,
+      pixelsPerFrame: pixelsPerFrame,
       frame: frame,
     );
   }
@@ -137,7 +140,9 @@ class Montage extends RenderObjectWidget {
         ..distance = distance
         ..pullback = pullback
         ..extraPullback = extraPullback
-        ..frame = frame;
+        ..pixelsPerFrame = pixelsPerFrame
+        ..frame = frame
+        ;
   }
 }
 
@@ -305,6 +310,7 @@ class RenderMontage extends RenderBox {
     double pullback = 0,
     double extraPullback = 0,
     bool isRoundTransformedExtent = true,
+    double pixelsPerFrame = 1,
     int frame = 0,
   }) : _children = List<RenderMontageCard?>.filled(childCount, null),
        _isPerspective = isPerspective,
@@ -317,6 +323,7 @@ class RenderMontage extends RenderBox {
        _pullback = pullback,
        _extraPullback = extraPullback,
        _isRoundTransformedExtent = isRoundTransformedExtent,
+       _pixelsPerFrame = pixelsPerFrame,
        _frame = frame;
 
   final List<RenderMontageCard?> _children;
@@ -429,6 +436,15 @@ class RenderMontage extends RenderBox {
     if (_isRoundTransformedExtent != value) {
       _isRoundTransformedExtent = value;
       markNeedsLayout();
+    }
+  }
+
+  double _pixelsPerFrame;
+  double get pixelsPerFrame => _pixelsPerFrame;
+  set pixelsPerFrame(double value) {
+    if (value != _pixelsPerFrame) {
+      _pixelsPerFrame = value;
+      markNeedsPaint();
     }
   }
 
@@ -785,10 +801,11 @@ class RenderMontageCard extends RenderProxyBox with RenderConstrainedLayoutBuild
     final double localSpaceBottom = solveY(parentHeight + montageLayer.slop * parentHeight);
     final double localSpaceSpan = localSpaceBottom - localSpaceTop;
     final double base = baseY * localSpaceSpan;
-    final double y = localSpaceBottom - (base + parent!.frame * montageLayer.speed) % localSpaceSpan;
+    final double y = localSpaceBottom - (base + parent!.frame * parent!.pixelsPerFrame * montageLayer.speed) % localSpaceSpan;
     if (y != _y) {
-      if ((_y - localSpaceTop).abs() <= _reloadTolerance &&
-          (y - localSpaceBottom).abs() <= _reloadTolerance) {
+      double tolerance = _reloadTolerance * parent!.pixelsPerFrame;
+      if ((_y - localSpaceTop).abs() <= tolerance &&
+          (y - localSpaceBottom).abs() <= tolerance) {
         SchedulerBinding.instance.addPostFrameCallback((Duration timeStamp) {
           // The reload handler is likely to want to trigger a rebuild, which
           // isn't allowed during layout, so we schedule it post-frame.
