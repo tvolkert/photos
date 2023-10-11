@@ -908,14 +908,20 @@ class RenderMontageCard extends RenderProxyBox with RenderConstrainedLayoutBuild
 
   @override
   void paint(PaintingContext context, Offset offset) {
-    layer = context.pushTransform(
-      needsCompositing,
-      offset,
-      Matrix4.translationValues(x, y, montageLayer.z),
-      (PaintingContext context, Offset offset) {
-        super.paint(context, offset);
-      },
-      oldLayer: layer as TransformLayer?,
-    );
+    final double y = this.y;
+    final double screenTop = solveY(-constraints.transformedHeight);
+    final double screenBottom = solveY(parent!.size.height);
+    final bool isVisible = y >= screenTop && y <= screenBottom;
+    if (isVisible) {
+      layer = context.pushTransform(
+        needsCompositing,
+        offset,
+        Matrix4.translationValues(x, y, montageLayer.z),
+        (PaintingContext context, Offset offset) {
+          super.paint(context, offset);
+        },
+        oldLayer: layer as TransformLayer?,
+      );
+    }
   }
 }
