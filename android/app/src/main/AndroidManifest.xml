@@ -27,6 +27,10 @@
         android:label="Photos Montage"
         android:requestLegacyExternalStorage="true">
 
+        <meta-data
+	    android:name="io.flutter.embedding.android.EnableImpeller"
+	    android:value="true" />
+
         <activity
             android:name=".SettingsActivity"
             android:exported="false"

@@ -1,7 +1,9 @@
 package dev.tvolkert.photos;
 
+import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.view.WindowManager.LayoutParams;
@@ -24,9 +26,15 @@ public class DreamActivity extends FlutterActivity {
         photosChannel.register();
         FlutterView flutterView = findViewById(FlutterActivity.FLUTTER_VIEW_ID);
         photosChannel.setFlutterView(flutterView);
-        if (!Settings.System.canWrite(this)) {
-            startActivity(new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS)
-                .setData(Uri.parse(PACKAGE_URI_PREFIX + getPackageName())));
-        }
+	if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+	    if (!Settings.System.canWrite(this)) {
+	        try {
+		    Intent intent = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS);
+		    intent.setData(Uri.parse(PACKAGE_URI_PREFIX + getPackageName()));
+                    startActivity(intent);
+	        } catch (ActivityNotFoundException e) {
+	        }
+	    }
+	}
     }
 }
