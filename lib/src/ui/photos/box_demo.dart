@@ -31,7 +31,7 @@ class MontageController extends StatefulWidget {
 class _MontageControllerState extends State<MontageController> with SingleTickerProviderStateMixin {
   late AnimationController animation;
   late Animation<double> rotationAnimation;
-  late Animation<double> extraPullbackAnimation;
+  late Animation<double> pullbackAnimation;
   List<PhotoCard>? cards;
 
   // Integers are 64-bit, which means this can hold
@@ -45,13 +45,11 @@ class _MontageControllerState extends State<MontageController> with SingleTicker
   double zFar = 10;
   int zScale = 0;
   double cardScale = 1;
-  double distance = -19;
+  double distance = -70;
   int distanceScale = 2;
   int currentField = 3;
-  double pullback = -51;
+  double pullback = -70;
   double pullbackScale = 2;
-  double extraPullback = -70;
-  double extraPullbackScale = 2;
   double zDiff = 37;
   double zDiffScale = 2;
   double yX = 0.96;
@@ -79,8 +77,6 @@ class _MontageControllerState extends State<MontageController> with SingleTicker
     _getCardScale,
     _getDistance,
     _getDistanceScale,
-    _getPullback,
-    _getPullbackScale,
     _getExtraPullback,
     _getExtraPullbackScale,
     _getZDiff,
@@ -105,8 +101,6 @@ class _MontageControllerState extends State<MontageController> with SingleTicker
     _updateCardScale,
     _updateDistance,
     _updateDistanceScale,
-    _updatePullback,
-    _updatePullbackScale,
     _updateExtraPullback,
     _updateExtraPullbackScale,
     _updateZDiff,
@@ -192,10 +186,6 @@ class _MontageControllerState extends State<MontageController> with SingleTicker
         _setHandler(20);
       } else if (event.logicalKey == LogicalKeyboardKey.keyM) {
         _setHandler(21);
-      } else if (event.logicalKey == LogicalKeyboardKey.keyN) {
-        _setHandler(22);
-      } else if (event.logicalKey == LogicalKeyboardKey.keyO) {
-        _setHandler(23);
       }
     }
     return KeyEventResult.handled;
@@ -218,8 +208,6 @@ class _MontageControllerState extends State<MontageController> with SingleTicker
   double get distanceValue => distance * distanceScaleMultiplier;
   double get pullbackScaleMultiplier => math.pow(10, pullbackScale).toDouble();
   double get pullbackValue => pullback * pullbackScaleMultiplier;
-  double get extraPullbackScaleMultiplier => math.pow(10, extraPullbackScale).toDouble();
-  double get extraPullbackValue => extraPullback * extraPullbackScaleMultiplier;
   double get zDiffScaleMultiplier => math.pow(10, zDiffScale).toDouble();
   double get zDiffValue => zDiff * zDiffScaleMultiplier;
   double get pixelsPerFrameScaleMultiplier => math.pow(10, pixelsPerFrameScale).toDouble();
@@ -234,10 +222,8 @@ class _MontageControllerState extends State<MontageController> with SingleTicker
   (String, double) _getCardScale() => ('cardScale', cardScale);
   (String, double) _getDistance() => ('distance', distanceValue.toPrecision(5));
   (String, double) _getDistanceScale() => ('distanceScale', distanceScaleMultiplier);
-  (String, double) _getPullback() => ('pullback', pullbackValue.toPrecision(5));
-  (String, double) _getPullbackScale() => ('pullbackScale', pullbackScaleMultiplier);
-  (String, double) _getExtraPullback() => ('extraPullback', extraPullbackValue.toPrecision(5));
-  (String, double) _getExtraPullbackScale() => ('extraPullbackScale', extraPullbackScaleMultiplier);
+  (String, double) _getExtraPullback() => ('pullback', pullbackValue.toPrecision(5));
+  (String, double) _getExtraPullbackScale() => ('pullbackScale', pullbackScaleMultiplier);
   (String, double) _getAnimationValue() => ('animationValue', animation.value);
   (String, double) _getZDiff() => ('zDiff', zDiffValue.toPrecision(5));
   (String, double) _getZDiffScale() => ('dZiffScale', zDiffScaleMultiplier);
@@ -314,28 +300,16 @@ class _MontageControllerState extends State<MontageController> with SingleTicker
     });
   }
 
-  void _updatePullback(UpDown upDown) {
-    setState(() {
-      pullback += _getDoubleValue(upDown);
-    });
-  }
-
-  void _updatePullbackScale(UpDown upDown) {
-    setState(() {
-      pullbackScale += _getIntValue(upDown);
-    });
-  }
-
   void _updateExtraPullback(UpDown upDown) {
     setState(() {
-      extraPullback += _getDoubleValue(upDown);
+      pullback += _getDoubleValue(upDown);
       _initExtraPullbackAnimation();
     });
   }
 
   void _updateExtraPullbackScale(UpDown upDown) {
     setState(() {
-      extraPullbackScale += _getIntValue(upDown);
+      pullbackScale += _getIntValue(upDown);
       _initExtraPullbackAnimation();
     });
   }
@@ -422,18 +396,18 @@ class _MontageControllerState extends State<MontageController> with SingleTicker
   }
 
   void _initExtraPullbackAnimation() {
-    extraPullbackAnimation = TweenSequence<double>(
+    pullbackAnimation = TweenSequence<double>(
       <TweenSequenceItem<double>>[
         TweenSequenceItem<double>(
-          tween: Tween<double>(begin: 0, end: extraPullbackValue).chain(CurveTween(curve: Curves.easeInOutSine)),
+          tween: Tween<double>(begin: 0, end: pullbackValue).chain(CurveTween(curve: Curves.easeInOutSine)),
           weight: 48,
         ),
         TweenSequenceItem<double>(
-          tween: ConstantTween<double>(extraPullbackValue),
+          tween: ConstantTween<double>(pullbackValue),
           weight: 4,
         ),
         TweenSequenceItem<double>(
-          tween: Tween<double>(begin: extraPullbackValue, end: 0).chain(CurveTween(curve: Curves.easeInOutSine)),
+          tween: Tween<double>(begin: pullbackValue, end: 0).chain(CurveTween(curve: Curves.easeInOutSine)),
           weight: 48,
         ),
       ],
@@ -507,8 +481,7 @@ class _MontageControllerState extends State<MontageController> with SingleTicker
               cardScale: cardScale,
               rotation: rotationAnimation.value,
               distance: distanceValue,
-              pullback: pullbackValue,
-              extraPullback: extraPullbackAnimation.value,
+              pullback: pullbackAnimation.value,
               pixelsPerFrame: pixelsPerFrameValue,
               frame: frame,
               children: cards ??= buildCards(context),

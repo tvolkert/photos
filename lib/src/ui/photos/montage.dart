@@ -79,9 +79,8 @@ class Montage extends RenderObjectWidget {
     this.zFar = 10,
     this.cardScale = 1,
     this.rotation = 0,
-    this.distance = -500,
-    this.pullback = -5100,
-    this.extraPullback = -6000,
+    this.distance = -5600,
+    this.pullback = -6000,
     this.pixelsPerFrame = 1,
     this.frame = 0,
     required this.children,
@@ -95,7 +94,6 @@ class Montage extends RenderObjectWidget {
   final double rotation;
   final double distance;
   final double pullback;
-  final double extraPullback;
   final double pixelsPerFrame;
   final int frame;
 
@@ -122,7 +120,6 @@ class Montage extends RenderObjectWidget {
       rotation: rotation,
       distance: distance,
       pullback: pullback,
-      extraPullback: extraPullback,
       pixelsPerFrame: pixelsPerFrame,
       frame: frame,
     );
@@ -139,7 +136,6 @@ class Montage extends RenderObjectWidget {
         ..rotation = rotation
         ..distance = distance
         ..pullback = pullback
-        ..extraPullback = extraPullback
         ..pixelsPerFrame = pixelsPerFrame
         ..frame = frame
         ;
@@ -308,7 +304,6 @@ class RenderMontage extends RenderBox {
     double rotation = 0,
     double distance = 0,
     double pullback = 0,
-    double extraPullback = 0,
     bool isRoundTransformedExtent = true,
     double pixelsPerFrame = 1,
     int frame = 0,
@@ -321,7 +316,6 @@ class RenderMontage extends RenderBox {
        _rotation = rotation,
        _distance = distance,
        _pullback = pullback,
-       _extraPullback = extraPullback,
        _isRoundTransformedExtent = isRoundTransformedExtent,
        _pixelsPerFrame = pixelsPerFrame,
        _frame = frame;
@@ -414,18 +408,6 @@ class RenderMontage extends RenderBox {
   set pullback(double value) {
     if (_pullback != value) {
       _pullback = value;
-      markNeedsCardScaleTransform();
-      markNeedsFullTransform();
-      markNeedsFullTransformSansRotation();
-      markNeedsLayout();
-    }
-  }
-
-  double _extraPullback = 0;
-  double get extraPullback => _extraPullback;
-  set extraPullback(double value) {
-    if (_extraPullback != value) {
-      _extraPullback = value;
       markNeedsFullTransform();
     }
   }
@@ -498,7 +480,7 @@ class RenderMontage extends RenderBox {
           ..setIdentity()
           ..translate(center.width, center.height)
           ..multiply(baseTransform)
-          ..translate(0.0, 0.0, distance + pullback + extraPullback)
+          ..translate(0.0, 0.0, distance + pullback)
           ..rotateY(rotation)
           ..translate(-center.width * xScaleFactor, -center.height * yScaleFactor)
           ;
@@ -525,7 +507,7 @@ class RenderMontage extends RenderBox {
           ..setIdentity()
           ..translate(center.width, center.height)
           ..multiply(baseTransform)
-          ..translate(0.0, 0.0, distance + pullback)
+          ..translate(0.0, 0.0, distance)
           ..translate(-center.width * xScaleFactor, -center.height * yScaleFactor)
           ;
     }
@@ -554,7 +536,7 @@ class RenderMontage extends RenderBox {
       _cardScaleTransform
           ..setIdentity()
           ..multiply(baseTransform)
-          ..translate(0.0, 0.0, distance + pullback)
+          ..translate(0.0, 0.0, distance)
           ;
     }
     return _cardScaleTransform;

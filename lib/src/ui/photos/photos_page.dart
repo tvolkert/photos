@@ -255,9 +255,8 @@ class MontageSpinDriver extends StatefulWidget {
     this.zNear = 1,
     this.zFar = 10,
     this.rotation = 0,
-    this.distance = 0,
-    this.pullback = -5100,
-    this.extraPullback = -8200,
+    this.distance = -5100,
+    this.pullback = -8200,
     this.pixelsPerFrame = 1,
     this.frame = 0,
     this.children = const <Widget>[],
@@ -270,7 +269,6 @@ class MontageSpinDriver extends StatefulWidget {
   final double rotation;
   final double distance;
   final double pullback;
-  final double extraPullback;
   final double pixelsPerFrame;
   final int frame;
   final List<Widget> children;
@@ -282,7 +280,7 @@ class MontageSpinDriver extends StatefulWidget {
 class _MontageSpinDriverState extends State<MontageSpinDriver> with SingleTickerProviderStateMixin {
   late AnimationController animation;
   late Animation<double> rotation;
-  late Animation<double> distance;
+  late Animation<double> pullback;
   late Timer timer;
 
   void _handleSpin(Intent intent) {
@@ -311,18 +309,18 @@ class _MontageSpinDriverState extends State<MontageSpinDriver> with SingleTicker
         });
       });
     rotation = ThetaTween().chain(CurveTween(curve: Curves.easeInOutCubic)).animate(animation);
-    distance = TweenSequence<double>(
+    pullback = TweenSequence<double>(
       <TweenSequenceItem<double>>[
         TweenSequenceItem<double>(
-          tween: Tween<double>(begin: 0, end: widget.extraPullback).chain(CurveTween(curve: Curves.easeInOutSine)),
+          tween: Tween<double>(begin: 0, end: widget.pullback).chain(CurveTween(curve: Curves.easeInOutSine)),
           weight: 48,
         ),
         TweenSequenceItem<double>(
-          tween: ConstantTween<double>(widget.extraPullback),
+          tween: ConstantTween<double>(widget.pullback),
           weight: 4,
         ),
         TweenSequenceItem<double>(
-          tween: Tween<double>(begin: widget.extraPullback, end: 0).chain(CurveTween(curve: Curves.easeInOutSine)),
+          tween: Tween<double>(begin: widget.pullback, end: 0).chain(CurveTween(curve: Curves.easeInOutSine)),
           weight: 48,
         ),
       ],
@@ -351,8 +349,7 @@ class _MontageSpinDriverState extends State<MontageSpinDriver> with SingleTicker
           zFar: widget.zFar,
           rotation: rotation.value,
           distance: widget.distance,
-          pullback: widget.pullback,
-          extraPullback: distance.value,
+          pullback: pullback.value,
           pixelsPerFrame: widget.pixelsPerFrame,
           frame: widget.frame,
           children: widget.children,
