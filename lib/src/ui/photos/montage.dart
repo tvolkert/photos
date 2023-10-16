@@ -48,16 +48,16 @@ class MontageLayer {
   ///    to have a colored box with this color shown in front of them.
   final Color debugColor;
 
-  static const double _diff = 3700;
+  static const double _diff = 2400;
 
   /// The layer that is closest to the viewer's perspective.
-  static const MontageLayer front = MontageLayer._(_diff, 1, 2.2, Color(0x330000ff));
+  static const MontageLayer front = MontageLayer._(_diff, 1, 2.6, Color(0x330000ff));
 
   /// The layer that is in between the other two layers.
-  static const MontageLayer middle = MontageLayer._(0, 0.95, 0.65, Color(0x3300ff00));
+  static const MontageLayer middle = MontageLayer._(0, 0.8, 1.1, Color(0x3300ff00));
 
   /// The layer that is furthest away from the viewer's perspective.
-  static const MontageLayer back = MontageLayer._(-_diff, 0.8, 0.25, Color(0x33ff0000));
+  static const MontageLayer back = MontageLayer._(-_diff, 0.6, 0.45, Color(0x33ff0000));
 
   @override
   bool operator==(Object other) {
@@ -79,9 +79,9 @@ class Montage extends RenderObjectWidget {
     this.zFar = 10,
     this.cardScale = 1,
     this.rotation = 0,
-    this.distance = -1900,
+    this.distance = -500,
     this.pullback = -5100,
-    this.extraPullback = -7000,
+    this.extraPullback = -6000,
     this.pixelsPerFrame = 1,
     this.frame = 0,
     required this.children,
@@ -908,20 +908,14 @@ class RenderMontageCard extends RenderProxyBox with RenderConstrainedLayoutBuild
 
   @override
   void paint(PaintingContext context, Offset offset) {
-    final double y = this.y;
-    final double screenTop = solveY(-constraints.transformedHeight);
-    final double screenBottom = solveY(parent!.size.height);
-    final bool isVisible = y >= screenTop && y <= screenBottom;
-    if (isVisible) {
-      layer = context.pushTransform(
-        needsCompositing,
-        offset,
-        Matrix4.translationValues(x, y, montageLayer.z),
-        (PaintingContext context, Offset offset) {
-          super.paint(context, offset);
-        },
-        oldLayer: layer as TransformLayer?,
-      );
-    }
+    layer = context.pushTransform(
+      needsCompositing,
+      offset,
+      Matrix4.translationValues(x, y, montageLayer.z),
+      (PaintingContext context, Offset offset) {
+        super.paint(context, offset);
+      },
+      oldLayer: layer as TransformLayer?,
+    );
   }
 }

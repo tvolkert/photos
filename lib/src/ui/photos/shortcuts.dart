@@ -18,15 +18,16 @@ class PhotosShortcutManager extends ShortcutManager {
     SingleActivator(LogicalKeyboardKey.arrowRight): FastForwardIntent(),
     SingleActivator(LogicalKeyboardKey.mediaFastForward): FastForwardIntent(),
     SingleActivator(LogicalKeyboardKey.mediaSkipForward): FastForwardIntent(),
-    SingleActivator(LogicalKeyboardKey.arrowUp): ZoomIntent(),
-    SingleActivator(LogicalKeyboardKey.arrowDown): ShrinkIntent(),
+    SingleActivator(LogicalKeyboardKey.keyS): SpinIntent(),
+    SingleActivator(LogicalKeyboardKey.add): ZoomIntent(),
+    SingleActivator(LogicalKeyboardKey.minus): ShrinkIntent(),
   };
 
   @override
   KeyEventResult handleKeypress(BuildContext context, RawKeyEvent event) {
     KeyEventResult result = super.handleKeypress(context, event);
     return result == KeyEventResult.handled
-        ? KeyEventResult.skipRemainingHandlers
+        ? KeyEventResult.handled
         : result;
   }
 }

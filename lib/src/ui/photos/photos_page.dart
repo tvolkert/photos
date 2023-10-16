@@ -18,6 +18,7 @@ import 'intents.dart';
 import 'montage.dart';
 
 const _rotationInterval = Duration(seconds: 60);
+const _rotationDuration = Duration(seconds: 3);
 
 /// A widget that will load a [MontageContainer] with a specified [PhotoProducer]
 /// along with an optional [Notification] to show in the app's bottom bar.
@@ -115,24 +116,22 @@ class MontageContainer extends StatelessWidget {
     int nextKeyIndex = 1;
     CardKey newKey() => CardKey(nextKeyIndex++);
     return <PhotoCard>[
-      PhotoCard(xPercentages: const <double>[0.07], baseY: 0.90, layer: MontageLayer.back, key: newKey()),
-      PhotoCard(xPercentages: const <double>[0.54], baseY: 0.70, layer: MontageLayer.back, key: newKey()),
-      PhotoCard(xPercentages: const <double>[0.96], baseY: 0.50, layer: MontageLayer.back, key: newKey()),
-      PhotoCard(xPercentages: const <double>[0.04], baseY: 0.40, layer: MontageLayer.back, key: newKey()),
-      PhotoCard(xPercentages: const <double>[0.35], baseY: 0.20, layer: MontageLayer.back, key: newKey()),
-      PhotoCard(xPercentages: const <double>[0.79], baseY: 0.10, layer: MontageLayer.back, key: newKey()),
-      PhotoCard(xPercentages: const <double>[0.01], baseY: 0.90, layer: MontageLayer.middle, key: newKey()),
-      PhotoCard(xPercentages: const <double>[0.47], baseY: 0.80, layer: MontageLayer.middle, key: newKey()),
-      PhotoCard(xPercentages: const <double>[0.85], baseY: 0.60, layer: MontageLayer.middle, key: newKey()),
-      PhotoCard(xPercentages: const <double>[0.05], baseY: 0.50, layer: MontageLayer.middle, key: newKey()),
-      PhotoCard(xPercentages: const <double>[0.50], baseY: 0.38, layer: MontageLayer.middle, key: newKey()),
-      PhotoCard(xPercentages: const <double>[0.90], baseY: 0.25, layer: MontageLayer.middle, key: newKey()),
-      PhotoCard(xPercentages: const <double>[0.15], baseY: 0.15, layer: MontageLayer.middle, key: newKey()),
-      PhotoCard(xPercentages: const <double>[0.85], baseY: 0.00, layer: MontageLayer.middle, key: newKey()),
-      PhotoCard(xPercentages: const <double>[0.10], baseY: 0.90, layer: MontageLayer.front, key: newKey()),
-      PhotoCard(xPercentages: const <double>[0.90], baseY: 0.70, layer: MontageLayer.front, key: newKey()),
-      PhotoCard(xPercentages: const <double>[0.20], baseY: 0.45, layer: MontageLayer.front, key: newKey()),
-      PhotoCard(xPercentages: const <double>[0.75], baseY: 0.20, layer: MontageLayer.front, key: newKey()),
+      PhotoCard(xPercentages: const <double>[0.07, 0.90], baseY: 0.68, layer: MontageLayer.back, key: newKey()),
+      PhotoCard(xPercentages: const <double>[0.75, 0.05], baseY: 0.64, layer: MontageLayer.back, key: newKey()),
+      PhotoCard(xPercentages: const <double>[0.85, 0.20], baseY: 0.33, layer: MontageLayer.back, key: newKey()),
+      PhotoCard(xPercentages: const <double>[0.30, 0.65], baseY: 0.00, layer: MontageLayer.back, key: newKey()),
+      PhotoCard(xPercentages: const <double>[-0.9], baseY: 0.80, layer: MontageLayer.middle, key: newKey()),
+      PhotoCard(xPercentages: const <double>[1.60], baseY: 0.80, layer: MontageLayer.middle, key: newKey()),
+      PhotoCard(xPercentages: const <double>[0.01, 0.40, 0.95, 0.30], baseY: 0.55, layer: MontageLayer.middle, key: newKey()),
+      PhotoCard(xPercentages: const <double>[-0.7], baseY: 0.30, layer: MontageLayer.middle, key: newKey()),
+      PhotoCard(xPercentages: const <double>[1.50], baseY: 0.30, layer: MontageLayer.middle, key: newKey()),
+      PhotoCard(xPercentages: const <double>[0.55, 0.95, 0.35, 0.50], baseY: 0.05, layer: MontageLayer.middle, key: newKey()),
+      PhotoCard(xPercentages: const <double>[0.10, 0.30], baseY: 0.95, layer: MontageLayer.front, key: newKey()),
+      PhotoCard(xPercentages: const <double>[2.60, -2.1], baseY: 0.70, layer: MontageLayer.front, key: newKey()),
+      PhotoCard(xPercentages: const <double>[-2.1, 2.60], baseY: 0.70, layer: MontageLayer.front, key: newKey()),
+      PhotoCard(xPercentages: const <double>[0.90, 0.60], baseY: 0.45, layer: MontageLayer.front, key: newKey()),
+      PhotoCard(xPercentages: const <double>[-2.3, 2.90], baseY: 0.2, layer: MontageLayer.front, key: newKey()),
+      PhotoCard(xPercentages: const <double>[2.90, -2.3], baseY: 0.2, layer: MontageLayer.front, key: newKey()),
     ];
   }
 
@@ -240,27 +239,26 @@ class _MontageFrameDriverState extends State<MontageFrameDriver> {
         RewindIntent: CallbackAction(onInvoke: _handleRewind),
         FastForwardIntent: CallbackAction(onInvoke: _handleFastForward),
       },
-      child: KeyPressHandler(
-        child: MontageSpinner(
-          frame: _currentFrame,
-          children: widget.cards,
-        ),
+      child: MontageSpinDriver(
+        frame: _currentFrame,
+        children: widget.cards,
       ),
     );
   }
 }
 
-class MontageSpinner extends StatefulWidget {
-  const MontageSpinner({
+class MontageSpinDriver extends StatefulWidget {
+  const MontageSpinDriver({
     super.key,
     this.isPerspective = true,
     this.fovYRadians = math.pi * 4 / 10000,
     this.zNear = 1,
     this.zFar = 10,
     this.rotation = 0,
-    this.distance = -1900,
+    this.distance = 0,
     this.pullback = -5100,
-    this.extraPullback = -7000,
+    this.extraPullback = -8200,
+    this.pixelsPerFrame = 1,
     this.frame = 0,
     this.children = const <Widget>[],
   });
@@ -273,24 +271,39 @@ class MontageSpinner extends StatefulWidget {
   final double distance;
   final double pullback;
   final double extraPullback;
+  final double pixelsPerFrame;
   final int frame;
   final List<Widget> children;
 
   @override
-  State<MontageSpinner> createState() => _MontageSpinnerState();
+  State<MontageSpinDriver> createState() => _MontageSpinDriverState();
 }
 
-class _MontageSpinnerState extends State<MontageSpinner> with SingleTickerProviderStateMixin {
+class _MontageSpinDriverState extends State<MontageSpinDriver> with SingleTickerProviderStateMixin {
   late AnimationController animation;
   late Animation<double> rotation;
   late Animation<double> distance;
   late Timer timer;
 
+  void _handleSpin(Intent intent) {
+    if (!animation.isAnimating) {
+      timer.cancel();
+      animation.forward(from: 0);
+      _resetAnimationTimer();
+    }
+  }
+
+  void _resetAnimationTimer() {
+    timer = Timer.periodic(_rotationInterval, (Timer timer) {
+      animation.forward(from: 0);
+    });
+  }
+
   @override
   void initState() {
     super.initState();
     animation = AnimationController(
-      duration: const Duration(seconds: 3),
+      duration: _rotationDuration,
       vsync: this,
     )..addListener(() {
         setState(() {
@@ -301,23 +314,20 @@ class _MontageSpinnerState extends State<MontageSpinner> with SingleTickerProvid
     distance = TweenSequence<double>(
       <TweenSequenceItem<double>>[
         TweenSequenceItem<double>(
-          tween: Tween<double>(begin: 0, end: -7000).chain(CurveTween(curve: Curves.easeInOutSine)),
+          tween: Tween<double>(begin: 0, end: widget.extraPullback).chain(CurveTween(curve: Curves.easeInOutSine)),
           weight: 48,
         ),
         TweenSequenceItem<double>(
-          tween: ConstantTween<double>(-7000),
+          tween: ConstantTween<double>(widget.extraPullback),
           weight: 4,
         ),
         TweenSequenceItem<double>(
-          tween: Tween<double>(begin: -7000, end: 0).chain(CurveTween(curve: Curves.easeInOutSine)),
+          tween: Tween<double>(begin: widget.extraPullback, end: 0).chain(CurveTween(curve: Curves.easeInOutSine)),
           weight: 48,
         ),
       ],
     ).animate(animation);
-
-    timer = Timer.periodic(_rotationInterval, (Timer timer) {
-      animation.forward(from: 0);
-    });
+    _resetAnimationTimer();
   }
 
   @override
@@ -329,17 +339,25 @@ class _MontageSpinnerState extends State<MontageSpinner> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
-    return Montage(
-      isPerspective: widget.isPerspective,
-      fovYRadians: widget.fovYRadians,
-      zNear: widget.zNear,
-      zFar: widget.zFar,
-      rotation: rotation.value,
-      distance: widget.distance,
-      pullback: widget.pullback,
-      extraPullback: distance.value,
-      frame: widget.frame,
-      children: widget.children,
+    return Actions(
+      actions: <Type, Action<Intent>>{
+        SpinIntent: CallbackAction(onInvoke: _handleSpin),
+      },
+      child: KeyPressHandler(
+        child: Montage(
+          isPerspective: widget.isPerspective,
+          fovYRadians: widget.fovYRadians,
+          zNear: widget.zNear,
+          zFar: widget.zFar,
+          rotation: rotation.value,
+          distance: widget.distance,
+          pullback: widget.pullback,
+          extraPullback: distance.value,
+          pixelsPerFrame: widget.pixelsPerFrame,
+          frame: widget.frame,
+          children: widget.children,
+        ),
+      ),
     );
   }
 }
@@ -359,7 +377,18 @@ class PhotoCard extends StatefulWidget {
   }) : assert(xPercentages.length > 0);
 
   final List<double> xPercentages;
+
+  /// The y-position of the card at frame 0.
+  ///
+  /// This number is a value ranging from `0..1` (inclusive), where 0 represents
+  /// the lowest posible position of the card, and 1 represents the highest
+  /// possible position of the card.
+  ///
+  /// Cards wrap from top to bottom as they float off the top, so a value of 1
+  /// means that as soon as the frame advances beyond the first frame, the card
+  /// will wrap to the bottom.
   final double baseY;
+
   final MontageLayer layer;
   final bool useShadow;
   final String? debugImageLabel;
@@ -519,8 +548,8 @@ class _PhotoCardState extends State<PhotoCard> {
         decoration: BoxDecoration(
           boxShadow: [
             BoxShadow(
-              blurRadius: 20 * constraints.scale,
-              color: const Color(0x66000000),
+              blurRadius: 8 * constraints.scale,
+              color: const Color(0x99000000),
             ),
           ],
         ),

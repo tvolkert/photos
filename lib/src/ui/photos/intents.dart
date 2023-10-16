@@ -19,3 +19,8 @@ class ShrinkIntent extends Intent {
   /// Creates a const [ShrinkIntent].
   const ShrinkIntent();
 }
+
+class SpinIntent extends Intent {
+  /// Creates a const [SpinIntent]
+  const SpinIntent();
+}

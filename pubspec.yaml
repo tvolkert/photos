@@ -1,6 +1,6 @@
 name: photos
 description: A Google Photos leanback experience
-version: 1.0.4+4
+version: 1.0.6+6
 
 environment:
   sdk: ">=3.0.0"

@@ -110,16 +110,20 @@ class GooglePhotosPhotoProducer extends PhotoProducer {
         scaleMultiplier: scaleMultiplier,
       );
     } else {
-      final MediaItem mediaItem = queue.removeLast();
-      final Size photoSize = applyBoxFit(BoxFit.scaleDown, mediaItem.size!, sizeConstraints).destination;
       final double scale = window.devicePixelRatio * scaleMultiplier;
+      final MediaItem mediaItem = queue.removeLast();
+      final Size photoLogicalSize = applyBoxFit(
+        BoxFit.scaleDown,
+        mediaItem.size!,
+        sizeConstraints,
+      ).destination;
       return Photo(
         id: mediaItem.id,
         mediaItem: mediaItem,
-        size: photoSize / window.devicePixelRatio,
+        size: photoLogicalSize,
         scale: scale,
         boundingConstraints: sizeConstraints,
-        image: NetworkImage(mediaItem.getSizedUrl(photoSize), scale: scale),
+        image: NetworkImage(mediaItem.getSizedUrl(photoLogicalSize * scale), scale: scale),
       );
     }
   }
