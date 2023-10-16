@@ -368,7 +368,7 @@ class _MontageSpinDriverState extends State<MontageSpinDriver> with SingleTicker
 /// the future completes, it will house the photo.
 class PhotoCard extends StatefulWidget {
   const PhotoCard({
-    super.key,
+    required CardKey super.key,
     required this.xPercentages,
     required this.baseY,
     required this.layer,
@@ -392,6 +392,9 @@ class PhotoCard extends StatefulWidget {
   final MontageLayer layer;
   final bool useShadow;
   final String? debugImageLabel;
+
+  @override
+  CardKey get key => super.key as CardKey;
 
   @override
   State<PhotoCard> createState() => _PhotoCardState();
@@ -517,7 +520,7 @@ class _PhotoCardState extends State<PhotoCard> {
           top: 0,
           left: 0,
           right: 0,
-          child: Text(widget.key.toString()),
+          child: Text('#${widget.key.value} (at $xPercentage)'),
         ),
         if (_imageInfo != null)
           Positioned(
@@ -559,6 +562,8 @@ class _PhotoCardState extends State<PhotoCard> {
     return child;
   }
 
+  double get xPercentage => widget.xPercentages[_xPercentageIndex];
+
   @override
   void initState() {
     super.initState();
@@ -595,7 +600,7 @@ class _PhotoCardState extends State<PhotoCard> {
   @override
   Widget build(BuildContext context) {
     return MontageCard(
-      xPercentage: widget.xPercentages[_xPercentageIndex],
+      xPercentage: xPercentage,
       baseY: widget.baseY,
       layer: widget.layer,
       updateCount: _updateCount,
