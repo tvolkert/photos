@@ -11,10 +11,8 @@ class RandomPickingStrategy {
 
   /// Returns the next random value from the strategy.
   Iterable<int> pickN(int n) {
-    if (n > max) {
-      throw ArgumentError('n ($n) > max ($max)');
-    } else if (n == max) {
-      return List<int>.generate(n, (int index) => index);
+    if (n >= max) {
+      return List<int>.generate(max, (int index) => index);
     } else if (n < max ~/ 2) {
       final Set<int> result = <int>{};
       while (result.length < n) {
