@@ -24,7 +24,8 @@ class PhotosShortcutManager extends ShortcutManager {
   };
 
   @override
-  KeyEventResult handleKeypress(BuildContext context, RawKeyEvent event) {
+  @protected
+  KeyEventResult handleKeypress(BuildContext context, KeyEvent event) {
     KeyEventResult result = super.handleKeypress(context, event);
     return result == KeyEventResult.handled
         ? KeyEventResult.handled

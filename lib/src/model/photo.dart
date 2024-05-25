@@ -70,11 +70,11 @@ class Photo {
   int get hashCode => Object.hash(id, size);
 
   @override
-  bool operator ==(dynamic other) {
+  bool operator ==(Object other) {
     if (runtimeType != other.runtimeType) {
       return false;
     }
-    Photo typedOther = other;
+    Photo typedOther = other as Photo;
     return id == typedOther.id && size == typedOther.size;
   }
 }

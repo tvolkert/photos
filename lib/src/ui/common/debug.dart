@@ -67,11 +67,7 @@ class _DebugInfoState extends State<DebugInfo> {
           top: 0,
           left: 0,
           right: 0,
-          child: PerformanceOverlay.allEnabled(
-            checkerboardOffscreenLayers: true,
-            checkerboardRasterCacheImages: true,
-            rasterizerThreshold: 1,
-          ),
+          child: PerformanceOverlay.allEnabled(),
         ),
         Positioned(
           bottom: 0,
