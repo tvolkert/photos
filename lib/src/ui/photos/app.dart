@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' show CircularProgressIndicator, Icons;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart' hide Notification;
+import 'package:photos/src/model/content_provider.dart';
 import 'package:photos/src/model/dream.dart';
 
 import 'package:photos/src/model/photos_api.dart';
@@ -9,7 +10,6 @@ import 'package:photos/src/ui/common/app.dart';
 import 'package:photos/src/ui/common/debug.dart';
 import 'package:photos/src/ui/common/notifications.dart';
 
-import 'home.dart';
 import 'shortcuts.dart';
 
 class PhotosApp extends StatefulWidget {
@@ -196,7 +196,7 @@ class _PhotosAppState extends State<PhotosApp> with AppControllerMixin<PhotosApp
                 child: Stack(
                   fit: StackFit.passthrough,
                   children: <Widget>[
-                    const PhotosHome(),
+                    ContentProviderBinding.instance.buildHome(context),
                     NotificationsPanel(
                       upperLeft: ErrorsNotification(errors),
                       upperRight: _showPerformanceMetrics
@@ -296,8 +296,8 @@ class _PhotosAppScope extends InheritedWidget {
     required this.state,
     required this.apiState,
     required this.isShowDebugInfo,
-    required Widget child,
-  }) : super(child: child);
+    required super.child,
+  });
 
   final _PhotosAppState state;
   final PhotosLibraryApiState apiState;

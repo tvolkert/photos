@@ -2,14 +2,16 @@ import 'dart:developer' as developer;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
-import 'package:photos/src/model/dream.dart';
 
 import 'auth.dart';
+import 'content_provider.dart';
+import 'dream.dart';
 import 'files.dart';
+import 'google_photos.dart';
 import 'photos_api.dart';
 import 'ui.dart';
 
-class PhotosAppBinding extends AppBindingBase with ChangeNotifier, FilesBinding, DreamBinding, AuthBinding, UiBinding, PhotosApiBinding {
+class PhotosAppBinding extends AppBindingBase with ChangeNotifier, FilesBinding, DreamBinding, AuthBinding, UiBinding, PhotosApiBinding, ContentProviderBinding, GooglePhotosContentProvider {
   /// Creates and initializes the application binding if necessary.
   ///
   /// Applications should call this method before calling [runApp].

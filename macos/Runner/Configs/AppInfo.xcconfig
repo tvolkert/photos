@@ -11,4 +11,4 @@ PRODUCT_NAME = Photos Screensaver
 PRODUCT_BUNDLE_IDENTIFIER = dev.tvolkert.photos
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2023 tvolkert.dev. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2024 tvolkert.dev. All rights reserved.

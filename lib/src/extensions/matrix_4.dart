@@ -1,10 +1,10 @@
 import 'dart:typed_data';
-import 'dart:ui';
+import 'dart:ui' as ui;
 
 import 'package:vector_math/vector_math_64.dart';
 
 extension Matrix4Extensions on Matrix4 {
-  Size transformSize(Size size) {
+  ui.Size transformSize(ui.Size size) {
     final Float64List storage = this.storage;
     final double width = (storage[0] * size.width) +
         (storage[4] * size.height) +
@@ -12,7 +12,7 @@ extension Matrix4Extensions on Matrix4 {
     final double height = (storage[1] * size.width) +
         (storage[5] * size.height) +
         storage[13];
-    return Size(width, height);
+    return ui.Size(width, height);
   }
 
   Vector3 transform2(Vector3 arg) {

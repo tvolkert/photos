@@ -103,8 +103,8 @@ class _SettingsAppScope extends InheritedWidget {
   const _SettingsAppScope({
     required this.state,
     required this.isShowDebugInfo,
-    required Widget child,
-  }) : super(child: child);
+    required super.child,
+  });
 
   final _SettingsAppState state;
   final bool isShowDebugInfo;

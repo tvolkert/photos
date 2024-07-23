@@ -18,6 +18,8 @@ class PhotosShortcutManager extends ShortcutManager {
     SingleActivator(LogicalKeyboardKey.arrowRight): FastForwardIntent(),
     SingleActivator(LogicalKeyboardKey.mediaFastForward): FastForwardIntent(),
     SingleActivator(LogicalKeyboardKey.mediaSkipForward): FastForwardIntent(),
+    SingleActivator(LogicalKeyboardKey.arrowUp): GoFasterIntent(),
+    SingleActivator(LogicalKeyboardKey.arrowDown): GoSlowerIntent(),
     SingleActivator(LogicalKeyboardKey.keyS): SpinIntent(),
     SingleActivator(LogicalKeyboardKey.add): ZoomIntent(),
     SingleActivator(LogicalKeyboardKey.minus): ShrinkIntent(),

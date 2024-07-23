@@ -158,7 +158,7 @@ class IndexSlot {
 }
 
 class MontageElement extends RenderObjectElement {
-  MontageElement(Montage widget) : super(widget);
+  MontageElement(super.widget);
 
   late List<Element> _children;
 

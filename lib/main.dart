@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
+import 'package:photos/src/model/content_provider.dart';
 
 import 'src/model/app.dart';
 import 'src/model/auth.dart';
@@ -26,7 +27,7 @@ void settingsMain() {
 void dream() async {
   _runWithErrorChecking(() async {
     await PhotosAppBinding.ensureInitialized();
-    AuthBinding.instance.signInSilently();
+    await ContentProviderBinding.instance.init();
     runApp(const PhotosApp());
   });
 }

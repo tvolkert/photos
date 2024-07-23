@@ -80,17 +80,6 @@ class _MontageScaffoldState extends State<MontageScaffold> {
 }
 
 /// A widget that builds a [MontageContainer] with photos produces using an
-/// instance of [GooglePhotosPhotoProducer].
-class GooglePhotosMontageContainer extends StatelessWidget {
-  const GooglePhotosMontageContainer({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MontageContainer(producer: GooglePhotosPhotoProducer());
-  }
-}
-
-/// A widget that builds a [MontageContainer] with photos produces using an
 /// instance of [AssetPhotoProducer].
 class AssetPhotosMontageContainer extends StatelessWidget {
   const AssetPhotosMontageContainer({super.key});
@@ -162,6 +151,7 @@ class MontageFrameDriver extends StatefulWidget {
 class _MontageFrameDriverState extends State<MontageFrameDriver> {
   int? _scheduledFrameCallbackId;
   int _currentFrame = 0;
+  int _speed = 1;
   Timer? _resumeTimer;
 
   static const Duration _resumeDuration = Duration(seconds: 5);
@@ -181,20 +171,30 @@ class _MontageFrameDriverState extends State<MontageFrameDriver> {
   }
 
   void _onFrame(Duration timeStamp) async {
-    setState(() => _currentFrame++);
+    setState(() => _currentFrame += _speed);
     _scheduleFrame(rescheduling: true);
   }
 
   void _handleRewind(Intent intent) {
     _cancelFrame();
     _scheduleResume();
-    setState(() => _currentFrame -= 20);
+    setState(() => _currentFrame -= 20 * _speed);
   }
 
   void _handleFastForward(Intent intent) {
     _cancelFrame();
     _scheduleResume();
-    setState(() => _currentFrame+= 20);
+    setState(() => _currentFrame+= 20 * _speed);
+  }
+
+  void _handleGoFaster(Intent intent) {
+    setState(() => _speed++);
+  }
+
+  void _handleGoSlower(Intent intent) {
+    setState(() {
+      _speed = math.max(_speed - 1, 1);
+    });
   }
 
   void _scheduleResume() {
@@ -238,6 +238,8 @@ class _MontageFrameDriverState extends State<MontageFrameDriver> {
       actions: <Type, Action<Intent>>{
         RewindIntent: CallbackAction(onInvoke: _handleRewind),
         FastForwardIntent: CallbackAction(onInvoke: _handleFastForward),
+        GoFasterIntent: CallbackAction(onInvoke: _handleGoFaster),
+        GoSlowerIntent: CallbackAction(onInvoke: _handleGoSlower),
       },
       child: MontageSpinDriver(
         frame: _currentFrame,
@@ -428,6 +430,7 @@ class _PhotoCardState extends State<PhotoCard> {
   }
 
   void _subscribeImageStream() {
+    _unsubscribeImageStream();
     assert(_photoFuture == null);
     assert(_currentPhoto != null);
     final ImageConfiguration config = createLocalImageConfiguration(context);

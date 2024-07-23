@@ -10,6 +10,16 @@ class FastForwardIntent extends Intent {
   const FastForwardIntent();
 }
 
+class GoFasterIntent extends Intent {
+  /// Creates a const [GoFasterIntent].
+  const GoFasterIntent();
+}
+
+class GoSlowerIntent extends Intent {
+  /// Creates a const [GoSlowerIntent].
+  const GoSlowerIntent();
+}
+
 class ZoomIntent extends Intent {
   /// Creates a const [ZoomIntent].
   const ZoomIntent();
